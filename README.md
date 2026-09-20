@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔧 OficinaOS
+# 🔧 OficinaDS
 
 ### Sistema web de gerenciamento para oficinas mecânicas
 
