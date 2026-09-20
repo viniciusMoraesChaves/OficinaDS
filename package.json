@@ -1,0 +1,26 @@
+{
+  "name": "oficina-dm67-dm100",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Módulo da OficinaOS para consultar clientes e pesquisar funcionários.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node --test",
+    "check": "node --check src/server.js && node --check src/app.js && node --check public/assets/js/clientes.js && node --check public/assets/js/funcionarios.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.1",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "mysql2": "^3.15.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
