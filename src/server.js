@@ -23,6 +23,7 @@ async function start() {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
   } catch (error) {
     console.error('Não foi possível iniciar a aplicação.');
+    console.error(error);
     console.error(error.message);
     console.error('Confira o MySQL, o banco oficina_ds e as credenciais do arquivo .env.');
     await pool.end();

@@ -7,7 +7,7 @@ const funcionariosRoutes = require('./routes/funcionariosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
-const publicDirectory = path.resolve(__dirname, '../public');
+const distDirectory = path.resolve(__dirname, '../frontend/dist');
 
 app.disable('x-powered-by');
 app.use(helmet());
@@ -23,10 +23,12 @@ app.use('/api/clientes', clientesRoutes);
 app.use('/api/funcionarios', funcionariosRoutes);
 app.use('/api', notFoundApi);
 
-app.use(express.static(publicDirectory, { extensions: ['html'] }));
+// Front-end React (build do Vite)
+app.use(express.static(distDirectory));
 
+// Qualquer outra rota devolve o index.html; o React Router decide (inclusive o 404)
 app.use((req, res) => {
-  res.status(404).sendFile(path.join(publicDirectory, '404.html'));
+  res.sendFile(path.join(distDirectory, 'index.html'));
 });
 
 app.use(errorHandler);
