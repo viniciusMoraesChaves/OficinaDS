@@ -11,6 +11,7 @@ import type {
   StatusFiltro,
 } from '../types/funcionario';
 import type { Paginacao } from '../types/cliente';
+import type { Cargo, ListaCargosResponse } from '../types/cargo';
 
 const LIMITE = 8;
 
@@ -27,11 +28,19 @@ export default function Funcionarios() {
   const [pagina, setPagina] = useState(1);
 
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [cargos, setCargos] = useState<Cargo[]>([]);
   const [paginacao, setPaginacao] = useState<Paginacao | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [funcionarioSelecionado, setFuncionarioSelecionado] =
+  useState<Funcionario | null>(null);
+  const [cargoSelecionado, setCargoSelecionado] = useState<number | null>(null);
+  const [salvandoCargo, setSalvandoCargo] = useState(false);
+  const [erroCargo, setErroCargo] = useState('');
+  const [listaCargosAberta, setListaCargosAberta] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +79,27 @@ export default function Funcionarios() {
     };
   }, [filtros, pagina]);
 
+  useEffect(() => {
+    async function carregarCargos() {
+      try {
+        const result = await apiFetch<ListaCargosResponse>('/api/cargos');
+        setCargos(result.dados);
+      } catch (err) {
+        console.error('Erro ao carregar cargos:', err);
+      }
+    }
+
+    carregarCargos();
+  }, []);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+
+    if (funcionarioSelecionado && dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }, [funcionarioSelecionado]);
+
   function aplicar(busca: string, status: StatusFiltro) {
     setFiltros({ busca, status });
     setPagina(1);
@@ -100,6 +130,59 @@ export default function Funcionarios() {
     return partes.length
       ? `${total} resultado${total === 1 ? '' : 's'} para ${partes.join(' • ')}`
       : `${total} funcionário${total === 1 ? '' : 's'} no total`;
+  }
+
+  function handleEditarFuncionario(funcionario: Funcionario) {
+    setFuncionarioSelecionado(funcionario);
+    setCargoSelecionado(funcionario.cargoId);
+  }
+  async function handleSalvarCargo() {
+    if (!funcionarioSelecionado || cargoSelecionado === null) {
+      return;
+    }
+
+    setSalvandoCargo(true);
+    setErroCargo('');
+
+    try {
+      await apiFetch(
+        `/api/funcionarios/${funcionarioSelecionado.id}/cargo`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            idCargo: cargoSelecionado
+          })
+        }
+      );
+      const cargoAtualizado = cargos.find(
+        (cargo) => cargo.id === cargoSelecionado
+      );
+
+      if (cargoAtualizado) {
+        setFuncionarios((atuais) =>
+          atuais.map((funcionario) =>
+            funcionario.id === funcionarioSelecionado.id
+              ? {
+                  ...funcionario,
+                  cargoId: cargoAtualizado.id,
+                  cargo: cargoAtualizado.nome
+                }
+              : funcionario
+          )
+        );
+      }
+
+      dialogRef.current?.close();
+    } catch (err) {
+      setErroCargo(
+        err instanceof Error ? err.message : 'Erro ao atualizar cargo.'
+      );
+    } finally {
+      setSalvandoCargo(false);
+    }
   }
 
   return (
@@ -178,12 +261,13 @@ export default function Funcionarios() {
                 <th scope="col">Telefone</th>
                 <th scope="col">Admissão</th>
                 <th scope="col">Status</th>
+                <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody>
               {!loading && !error && funcionarios.length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={6}>
+                  <td className="empty-cell" colSpan={7}>
                     Nenhum funcionário corresponde à pesquisa.
                   </td>
                 </tr>
@@ -207,6 +291,15 @@ export default function Funcionarios() {
                   <td className="nowrap">{formatPhone(f.telefone)}</td>
                   <td className="nowrap">{formatDate(f.dataAdmissao)}</td>
                   <td><StatusBadge active={Boolean(f.ativo)} /></td>
+                  <td>
+                    <button
+                      className="button button--secondary button--small"
+                      type="button"
+                      onClick={() => handleEditarFuncionario(f)}
+                    >
+                      Editar
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -222,6 +315,108 @@ export default function Funcionarios() {
           />
         )}
       </section>
+      {funcionarioSelecionado && (
+        <dialog 
+          ref={dialogRef}
+          className="dialog dialog--cargo"
+          onClose={() => {
+            setFuncionarioSelecionado(null);
+            setCargoSelecionado(null);
+          }}
+        >
+          <div className="dialog__header">
+            <h2>Editar cargo</h2>
+
+            <button
+              className="dialog__close"
+              type="button"
+              onClick={() => dialogRef.current?.close()}
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="dialog__body">
+            <div className="field">
+              <label htmlFor="cargo-funcionario">
+                Cargo de {funcionarioSelecionado.nome}
+              </label>
+
+              <div className="cargo-select">
+                <button
+                  className="cargo-select__button"
+                  type="button"
+                  onClick={() => setListaCargosAberta((aberta) => !aberta)}
+                >
+                  <span>
+                    {cargos.find((cargo) => cargo.id === cargoSelecionado)?.nome ??
+                      'Selecione um cargo'}
+                  </span>
+
+                  <span className="cargo-select__arrow">
+                    {listaCargosAberta ? '▲' : '▼'}
+                  </span>
+                </button>
+
+                {listaCargosAberta && (
+                  <div className="cargo-select__options">
+                    {cargos.map((cargo) => (
+                      <button
+                        key={cargo.id}
+                        className={
+                          cargo.id === cargoSelecionado
+                            ? 'cargo-select__option cargo-select__option--selected'
+                            : 'cargo-select__option'
+                        }
+                        type="button"
+                        onClick={() => {
+                          setCargoSelecionado(cargo.id);
+                          setListaCargosAberta(false);
+                        }}
+                      >
+                        {cargo.nome}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            {erroCargo && (
+              <Feedback
+                type="error"
+                message={erroCargo}
+              />
+            )}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px',
+                marginTop: '20px'
+              }}
+            >
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => dialogRef.current?.close()}
+                disabled={salvandoCargo}
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={handleSalvarCargo}
+                disabled={salvandoCargo}
+              >
+                {salvandoCargo ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </dialog>
+      )}
     </Layout>
   );
 }

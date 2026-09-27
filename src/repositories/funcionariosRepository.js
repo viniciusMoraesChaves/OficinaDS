@@ -62,4 +62,15 @@ async function search({ busca, status, limite, offset }) {
   return { rows, total: countRows[0].total };
 }
 
-module.exports = { search };
+async function updateCargo(idFuncionario, idCargo) {
+  const [result] = await pool.execute(
+    `UPDATE funcionario
+     SET id_cargo = ?
+     WHERE id_funcionario = ?`,
+    [idCargo, idFuncionario]
+  );
+
+  return result.affectedRows;
+}
+
+module.exports = { search, updateCargo };

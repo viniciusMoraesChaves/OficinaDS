@@ -24,4 +24,36 @@ async function search(req, res) {
   });
 }
 
-module.exports = { search };
+async function updateCargo(req, res) {
+  const idFuncionario = Number(req.params.id);
+  const idCargo = Number(req.body.idCargo);
+
+  if (!Number.isInteger(idFuncionario) || idFuncionario <= 0) {
+    return res.status(400).json({
+      mensagem: 'Funcionário inválido.'
+    });
+  }
+
+  if (!Number.isInteger(idCargo) || idCargo <= 0) {
+    return res.status(400).json({
+      mensagem: 'Cargo inválido.'
+    });
+  }
+
+  const affectedRows = await funcionariosRepository.updateCargo(
+    idFuncionario,
+    idCargo
+  );
+
+  if (affectedRows === 0) {
+    return res.status(404).json({
+      mensagem: 'Funcionário não encontrado.'
+    });
+  }
+
+  res.json({
+    mensagem: 'Cargo atualizado com sucesso.'
+  });
+}
+
+module.exports = { search, updateCargo };

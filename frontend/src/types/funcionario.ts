@@ -4,6 +4,7 @@ export type Funcionario = {
   id: number;
   nome: string;
   email: string;
+  cargoId: number;
   cargo: string;
   cpf: string;
   telefone: string;

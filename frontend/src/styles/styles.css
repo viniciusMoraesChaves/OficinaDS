@@ -641,6 +641,108 @@ a {
   font-size: 14px;
 }
 
+.dialog--cargo {
+  overflow: visible;
+}
+
+.dialog--cargo .dialog__body {
+  overflow: visible;
+}
+
+.cargo-select {
+  position: relative;
+  width: 100%;
+}
+
+.cargo-select__button {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #181914;
+  border: 1px solid #d8d9d4;
+  border-radius: 10px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.cargo-select__button:hover {
+  border-color: #d4af0f;
+}
+
+.cargo-select__button:focus {
+  outline: none;
+  border-color: #d4af0f;
+  box-shadow: 0 0 0 3px rgba(212, 175, 15, 0.14);
+}
+
+.cargo-select__arrow {
+  margin-left: 12px;
+  color: #77786f;
+  font-size: 0.7rem;
+  transition: color 0.2s ease;
+}
+
+.cargo-select__button:hover .cargo-select__arrow {
+  color: #d4af0f;
+}
+
+.cargo-select__options {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #dedfd9;
+  border-radius: 10px;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.cargo-select__option {
+  width: 100%;
+  display: block;
+  padding: 11px 14px;
+  background: transparent;
+  color: #292a25;
+  border: 0;
+  border-bottom: 1px solid #eeeeea;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cargo-select__option:last-child {
+  border-bottom: 0;
+}
+
+.cargo-select__option:hover {
+  background: rgba(212, 175, 15, 0.09);
+  color: #8c7000;
+}
+
+.cargo-select__option--selected {
+  background: rgba(212, 175, 15, 0.13);
+  color: #7a6200;
+  font-weight: 600;
+}
+
 .details-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

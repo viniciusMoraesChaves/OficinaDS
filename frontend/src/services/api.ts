@@ -1,5 +1,14 @@
-export async function apiFetch<T>(url: string): Promise<T> {
-  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+export async function apiFetch<T>(
+  url: string,
+  options?: RequestInit
+): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      Accept: 'application/json',
+      ...options?.headers
+    }
+  });
 
   let body: unknown = null;
   try {

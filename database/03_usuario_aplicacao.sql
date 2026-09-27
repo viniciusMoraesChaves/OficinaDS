@@ -8,4 +8,7 @@ ALTER USER 'oficina_app'@'localhost'
   IDENTIFIED BY 'TroqueEstaSenha123!';
 
 GRANT SELECT ON oficina_ds.* TO 'oficina_app'@'localhost';
+GRANT UPDATE (id_cargo)
+ON oficina_ds.funcionario
+TO 'oficina_app'@'localhost';
 FLUSH PRIVILEGES;

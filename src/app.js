@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const clientesRoutes = require('./routes/clientesRoutes');
 const funcionariosRoutes = require('./routes/funcionariosRoutes');
+const cargosRoutes = require('./routes/cargosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -21,6 +22,7 @@ app.get('/api/saude', (req, res) => {
 
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/funcionarios', funcionariosRoutes);
+app.use('/api/cargos', cargosRoutes);
 app.use('/api', notFoundApi);
 
 // Front-end React (build do Vite)
