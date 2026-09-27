@@ -1,5 +1,29 @@
-export async function apiFetch<T>(url: string): Promise<T> {
-  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+const CHAVE_TOKEN = 'oficinaos:token';
+
+export function getToken(): string | null {
+  return localStorage.getItem(CHAVE_TOKEN);
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(CHAVE_TOKEN, token);
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(CHAVE_TOKEN);
+}
+
+async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const token = getToken();
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      Accept: 'application/json',
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
 
   let body: unknown = null;
   try {
@@ -14,4 +38,12 @@ export async function apiFetch<T>(url: string): Promise<T> {
   }
 
   return body as T;
+}
+
+export function apiFetch<T>(url: string): Promise<T> {
+  return request<T>(url);
+}
+
+export function apiPost<T>(url: string, data: unknown): Promise<T> {
+  return request<T>(url, { method: 'POST', body: JSON.stringify(data) });
 }

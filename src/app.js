@@ -2,6 +2,10 @@ const path = require('node:path');
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
+
+const authRoutes = require('./routes/authRoutes');
+const { exigirAutenticacao } = require('./middlewares/authMiddleware');
+
 const clientesRoutes = require('./routes/clientesRoutes');
 const funcionariosRoutes = require('./routes/funcionariosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
@@ -18,6 +22,16 @@ app.use(express.urlencoded({ extended: false }));
 app.get('/api/saude', (req, res) => {
   res.json({ status: 'ok', aplicacao: 'OficinaOS' });
 });
+
+app.get('/api/saude', (req, res) => {
+  res.json({ status: 'ok', aplicacao: 'OficinaOS' });
+});
+
+app.use('/api', authRoutes);
+
+app.use('/api/clientes', exigirAutenticacao, clientesRoutes);
+app.use('/api/funcionarios', exigirAutenticacao, funcionariosRoutes);
+app.use('/api', notFoundApi);
 
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/funcionarios', funcionariosRoutes);
