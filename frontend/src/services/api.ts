@@ -1,4 +1,5 @@
 const CHAVE_TOKEN = 'oficinaos:token';
+const CHAVE_PERFIL = 'oficinaos:perfil';
 
 export function getToken(): string | null {
   return localStorage.getItem(CHAVE_TOKEN);
@@ -10,6 +11,18 @@ export function setToken(token: string): void {
 
 export function clearToken(): void {
   localStorage.removeItem(CHAVE_TOKEN);
+}
+
+export function getPerfil(): string | null {
+  return localStorage.getItem(CHAVE_PERFIL);
+}
+
+export function setPerfil(perfil: string): void {
+  localStorage.setItem(CHAVE_PERFIL, perfil);
+}
+
+export function clearPerfil(): void {
+  localStorage.removeItem(CHAVE_PERFIL);
 }
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {

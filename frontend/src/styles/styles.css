@@ -179,6 +179,22 @@ a {
   font-size: 10px;
 }
 
+.sidebar__logout {
+  margin: 10px 8px 0;
+  padding: 8px 10px;
+  width: calc(100% - 16px);
+  background: transparent;
+  border: 1px solid #292a26;
+  border-radius: 8px;
+  color: #f6f6f4;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.sidebar__logout:hover {
+  border-color: #f6f6f4;
+}
+
 .page {
   min-width: 0;
 }

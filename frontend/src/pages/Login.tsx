@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { AuthLayout } from '../components/AuthLayout';
 import { useAuth } from '../context/AuthContext';
 import { apiPost } from '../services/api';
+import type { Perfil } from '../types/perfil';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -24,11 +25,11 @@ export default function Login() {
     setErro('');
 
     try {
-      const { dados } = await apiPost<{ dados: { token: string } }>('/api/login', {
-        email,
-        senha,
-      });
-      login(dados.token);
+      const { dados } = await apiPost<{ dados: { token: string; perfil: Perfil } }>(
+        '/api/login',
+        { email, senha }
+      );
+      login(dados.token, dados.perfil);
       navigate('/');
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível entrar.');

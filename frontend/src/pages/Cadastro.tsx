@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { AuthLayout } from '../components/AuthLayout';
 import { useAuth } from '../context/AuthContext';
 import { apiPost } from '../services/api';
+import type { Perfil } from '../types/perfil';
 
 export default function Cadastro() {
   const [nomeOficina, setNomeOficina] = useState('');
@@ -25,11 +26,11 @@ export default function Cadastro() {
     setErro('');
 
     try {
-      const { dados } = await apiPost<{ dados: { token: string } }>('/api/cadastro', {
-        email,
-        senha,
-      });
-      login(dados.token);
+      const { dados } = await apiPost<{ dados: { token: string; perfil: Perfil } }>(
+        '/api/cadastro',
+        { email, senha }
+      );
+      login(dados.token, dados.perfil);
       navigate('/');
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível criar a conta.');

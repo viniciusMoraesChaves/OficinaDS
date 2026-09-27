@@ -1,5 +1,20 @@
 const { pool } = require('../config/database');
 
+async function listarTodos() {
+  const [rows] = await pool.execute(
+    `SELECT
+       u.id_usuario AS id,
+       u.email,
+       u.ativo,
+       p.nome AS perfil
+     FROM usuario u
+     LEFT JOIN perfil p ON p.id_perfil = u.id_perfil
+     ORDER BY u.email ASC`
+  );
+
+  return rows;
+}
+
 async function buscarComPerfilPorId(idUsuario) {
   const [rows] = await pool.execute(
     `SELECT
@@ -17,4 +32,4 @@ async function buscarComPerfilPorId(idUsuario) {
   return rows[0] || null;
 }
 
-module.exports = { buscarComPerfilPorId };
+module.exports = { listarTodos, buscarComPerfilPorId };

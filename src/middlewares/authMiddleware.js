@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const env = require('../config/env');
 
 function exigirAutenticacao(req, res, next) {
   const cabecalho = req.headers.authorization;
@@ -13,7 +14,7 @@ function exigirAutenticacao(req, res, next) {
   const token = cabecalho.slice('Bearer '.length);
 
   try {
-    req.usuario = jwt.verify(token, process.env.JWT_SECRET);
+    req.usuario = jwt.verify(token, env.jwtSecret);
     next();
   } catch {
     return res.status(401).json({

@@ -15,6 +15,7 @@ function readPositiveInteger(value, fallback, name) {
 
 const env = Object.freeze({
   port: readPositiveInteger(process.env.PORT, 3000, 'PORT'),
+  jwtSecret: process.env.JWT_SECRET || 'chave-de-desenvolvimento-trocar-em-producao',
   db: {
     host: process.env.DB_HOST || 'localhost',
     port: readPositiveInteger(process.env.DB_PORT, 3306, 'DB_PORT'),

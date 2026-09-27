@@ -1,16 +1,15 @@
+const { exigirAutenticacao } = require('./authMiddleware');
 const usuariosRepository = require('../repositories/usuariosRepository');
 
-// projeto n tem login/sessão ainda
-// Enquanto isso não existe, o usuário logado é identificado pelo cabeçalho
-// "x-usuario-id", que o front-end vai enviar depois de implementar o login.
-// Quando a autenticação de verdade existir, troque essa função aqui.
-async function identificarUsuario(req, res, next) {
-  const idUsuario = req.header('x-usuario-id');
+// Roda depois de exigirAutenticacao. Usa o id_usuario que veio dentro do
+// token (JWT) para buscar o usuário completo, já com o nome do perfil.
+async function carregarUsuarioLogado(req, res, next) {
+  const idUsuario = req.usuario?.id_usuario;
 
   if (!idUsuario) {
     return res.status(401).json({
       erro: 'USUARIO_NAO_IDENTIFICADO',
-      mensagem: 'Envie o cabeçalho x-usuario-id com o usuário logado.'
+      mensagem: 'Faça login para continuar.'
     });
   }
 
@@ -27,7 +26,7 @@ async function identificarUsuario(req, res, next) {
   next();
 }
 
-// Uso: router.get('/rota', identificarUsuario, permitirPerfis('Administrador'), handler)
+// Uso: router.get('/rota', carregarUsuarioLogado, permitirPerfis('Administrador'), handler)
 function permitirPerfis(...perfisPermitidos) {
   return function verificarPerfil(req, res, next) {
     const usuario = req.usuarioLogado;
@@ -50,4 +49,11 @@ function permitirPerfis(...perfisPermitidos) {
   };
 }
 
-module.exports = { identificarUsuario, permitirPerfis };
+// Atalho que junta as três etapas: exigir login (JWT) + carregar o perfil +
+// validar se o perfil pode acessar a rota.
+// Uso: router.get('/rota', protegerRota('Administrador'), handler)
+function protegerRota(...perfisPermitidos) {
+  return [exigirAutenticacao, carregarUsuarioLogado, permitirPerfis(...perfisPermitidos)];
+}
+
+module.exports = { carregarUsuarioLogado, permitirPerfis, protegerRota };

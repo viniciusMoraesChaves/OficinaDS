@@ -1,4 +1,5 @@
 const path = require('node:path');
+const fs = require('node:fs');
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -12,6 +13,7 @@ const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
 const distDirectory = path.resolve(__dirname, '../frontend/dist');
+const indexFile = path.join(distDirectory, 'index.html');
 
 app.disable('x-powered-by');
 app.use(helmet());
@@ -23,26 +25,24 @@ app.get('/api/saude', (req, res) => {
   res.json({ status: 'ok', aplicacao: 'OficinaOS' });
 });
 
-app.get('/api/saude', (req, res) => {
-  res.json({ status: 'ok', aplicacao: 'OficinaOS' });
-});
-
 app.use('/api', authRoutes);
 
 app.use('/api/clientes', exigirAutenticacao, clientesRoutes);
-app.use('/api/funcionarios', exigirAutenticacao, funcionariosRoutes);
-app.use('/api', notFoundApi);
-
-app.use('/api/clientes', clientesRoutes);
-app.use('/api/funcionarios', funcionariosRoutes);
+app.use('/api/funcionarios', funcionariosRoutes); // perfil exigido já validado dentro da rota
 app.use('/api', notFoundApi);
 
 // Front-end React (build do Vite)
-app.use(express.static(distDirectory));
+if (fs.existsSync(distDirectory)) {
+  app.use(express.static(distDirectory));
+}
 
-// Qualquer outra rota devolve o index.html; o React Router decide (inclusive o 404)
-app.use((req, res) => {
-  res.sendFile(path.join(distDirectory, 'index.html'));
+// Servir o index.html do frontend ou fallback para testes quando a build não existe
+app.use((req, res, next) => {
+  if (fs.existsSync(indexFile)) {
+    res.sendFile(indexFile);
+  } else {
+    res.status(200).send('API OficinaDS rodando.');
+  }
 });
 
 app.use(errorHandler);

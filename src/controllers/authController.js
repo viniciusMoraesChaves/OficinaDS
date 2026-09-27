@@ -1,13 +1,16 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const env = require('../config/env');
 const { encontrarPorEmail, criarUsuario } = require('../repositories/authRepository');
+const perfisRepository = require('../repositories/perfisRepository');
+const { PERFIS } = require('../utils/perfis');
 
 const SALT_ROUNDS = 10;
 
 function gerarToken(usuario) {
   return jwt.sign(
-    { id_usuario: usuario.id_usuario, email: usuario.email },
-    process.env.JWT_SECRET,
+    { id_usuario: usuario.id_usuario, email: usuario.email, perfil: usuario.perfil },
+    env.jwtSecret,
     { expiresIn: '8h' }
   );
 }
@@ -41,7 +44,9 @@ async function login(req, res, next) {
       });
     }
 
-    res.json({ dados: { token: gerarToken(usuario), email: usuario.email } });
+    res.json({
+      dados: { token: gerarToken(usuario), email: usuario.email, perfil: usuario.perfil }
+    });
   } catch (error) {
     next(error);
   }
@@ -66,10 +71,17 @@ async function cadastrar(req, res, next) {
       });
     }
 
+    // Todo cadastro público entra como Funcionario; virar Administrador é
+    // uma ação manual (feita direto no banco), não algo que o próprio
+    // usuário escolhe no formulário.
+    const perfilPadrao = await perfisRepository.buscarPorNome(PERFIS.FUNCIONARIO);
     const senhaHash = await bcrypt.hash(senha, SALT_ROUNDS);
-    const usuario = await criarUsuario(email, senhaHash);
+    const usuarioCriado = await criarUsuario(email, senhaHash, perfilPadrao.id);
+    const usuario = { ...usuarioCriado, perfil: PERFIS.FUNCIONARIO };
 
-    res.status(201).json({ dados: { token: gerarToken(usuario), email: usuario.email } });
+    res.status(201).json({
+      dados: { token: gerarToken(usuario), email: usuario.email, perfil: usuario.perfil }
+    });
   } catch (error) {
     next(error);
   }
