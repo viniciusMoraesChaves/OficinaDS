@@ -62,4 +62,51 @@ async function search({ busca, status, limite, offset }) {
   return { rows, total: countRows[0].total };
 }
 
-module.exports = { search };
+async function updateCargoEPerfil(idFuncionario, idCargo, idPerfil) {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [funcionarios] = await connection.execute(
+      `SELECT id_usuario
+       FROM funcionario
+       WHERE id_funcionario = ?`,
+      [idFuncionario]
+    );
+
+    if (funcionarios.length === 0) {
+      await connection.rollback();
+      return 0;
+    }
+
+    const idUsuario = funcionarios[0].id_usuario;
+
+    await connection.execute(
+      `UPDATE funcionario
+       SET id_cargo = ?
+       WHERE id_funcionario = ?`,
+      [idCargo, idFuncionario]
+    );
+
+    if (idUsuario !== null) {
+      await connection.execute(
+        `UPDATE usuario
+         SET id_perfil = ?
+         WHERE id_usuario = ?`,
+        [idPerfil, idUsuario]
+      );
+    }
+
+    await connection.commit();
+
+    return 1;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+module.exports = { search, updateCargoEPerfil };

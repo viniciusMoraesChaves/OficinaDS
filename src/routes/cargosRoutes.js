@@ -1,5 +1,5 @@
 const express = require('express');
-const funcionariosController = require('../controllers/funcionariosController');
+const cargosController = require('../controllers/cargosController');
 const { protegerRota } = require('../middlewares/permissoes');
 const { PERFIS } = require('../utils/perfis');
 
@@ -8,12 +8,13 @@ const router = express.Router();
 router.get(
   '/',
   protegerRota(PERFIS.ADMINISTRADOR),
-  funcionariosController.search
+  cargosController.list
 );
 
-router.patch(
-  '/:id/cargo',
+router.post(
+  '/',
   protegerRota(PERFIS.ADMINISTRADOR),
-  funcionariosController.updateCargo
+  cargosController.create
 );
+
 module.exports = router;
