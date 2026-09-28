@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { PERFIS, type Perfil } from '../types/perfil';
 
 type LayoutProps = {
   title: string;
@@ -8,14 +10,27 @@ type LayoutProps = {
   children: ReactNode;
 };
 
-const links = [
-  { to: '/', label: 'Início', icon: '⌂', end: true },
-  { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
-  { to: '/funcionarios', label: 'Funcionários', icon: '⚙', end: false },
-];
+type LinkItem = { to: string; label: string; icon: string; end: boolean };
+
+const linksPorPerfil: Record<Perfil, LinkItem[]> = {
+  [PERFIS.ADMINISTRADOR]: [
+    { to: '/', label: 'Início', icon: '⌂', end: true },
+    { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
+    { to: '/funcionarios', label: 'Funcionários', icon: '⚙', end: false },
+    { to: '/usuarios', label: 'Usuários', icon: '☺', end: false },
+    { to: '/financeiro', label: 'Financeiro', icon: '$', end: false },
+  ],
+  [PERFIS.FUNCIONARIO]: [
+    { to: '/', label: 'Início', icon: '⌂', end: true },
+    { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
+  ],
+  [PERFIS.CLIENTE]: [{ to: '/', label: 'Início', icon: '⌂', end: true }],
+};
 
 export function Layout({ title, subtitle, documentTitle, children }: LayoutProps) {
   const [open, setOpen] = useState(false);
+  const { perfil, logout } = useAuth();
+  const links = linksPorPerfil[perfil ?? PERFIS.FUNCIONARIO];
 
   useEffect(() => {
     document.title = documentTitle;
@@ -50,12 +65,15 @@ export function Layout({ title, subtitle, documentTitle, children }: LayoutProps
 
         <div className="sidebar__footer">
           <div className="sidebar__user">
-            <span className="avatar">SO</span>
+            <span className="avatar">{(perfil ?? '?').slice(0, 2).toUpperCase()}</span>
             <span className="sidebar__user-copy">
-              <strong>Seu módulo</strong>
+              <strong>{perfil ?? 'Sem perfil'}</strong>
               <small>Sprint atual</small>
             </span>
           </div>
+          <button className="sidebar__logout" type="button" onClick={logout}>
+            Sair
+          </button>
         </div>
       </aside>
 
