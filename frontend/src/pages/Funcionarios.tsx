@@ -38,9 +38,15 @@ export default function Funcionarios() {
   const [salvandoCargo, setSalvandoCargo] = useState(false);
   const [erroCargo, setErroCargo] = useState('');
   const [listaCargosAberta, setListaCargosAberta] = useState(false);
+  const [modalNovoCargoAberto, setModalNovoCargoAberto] = useState(false);
+  const [nomeNovoCargo, setNomeNovoCargo] = useState('');
+  const [descricaoNovoCargo, setDescricaoNovoCargo] = useState('');
+  const [salvandoNovoCargo, setSalvandoNovoCargo] = useState(false);
+  const [erroNovoCargo, setErroNovoCargo] = useState('');
 
   const searchRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const novoCargoDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +105,14 @@ export default function Funcionarios() {
       dialog.showModal();
     }
   }, [funcionarioSelecionado]);
+
+  useEffect(() => {
+    const dialog = novoCargoDialogRef.current;
+
+    if (modalNovoCargoAberto && dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }, [modalNovoCargoAberto]);
 
   function aplicar(busca: string, status: StatusFiltro) {
     setFiltros({ busca, status });
@@ -185,6 +199,45 @@ export default function Funcionarios() {
     }
   }
 
+  async function handleCadastrarCargo() {
+    const nome = nomeNovoCargo.trim();
+    const descricao = descricaoNovoCargo.trim();
+
+    if (!nome) {
+      setErroNovoCargo('Informe o nome do cargo.');
+      return;
+    }
+
+    setSalvandoNovoCargo(true);
+    setErroNovoCargo('');
+
+    try {
+      const resultado = await apiFetch<{
+        dados: Cargo;
+        mensagem: string;
+      }>('/api/cargos', {
+        method: 'POST',
+        body: JSON.stringify({
+          nome,
+          descricao
+        })
+      });
+
+      setCargos((atuais) => [...atuais, resultado.dados]);
+
+      setNomeNovoCargo('');
+      setDescricaoNovoCargo('');
+
+      novoCargoDialogRef.current?.close();
+    } catch (err) {
+      setErroNovoCargo(
+        err instanceof Error ? err.message : 'Erro ao cadastrar cargo.'
+      );
+    } finally {
+      setSalvandoNovoCargo(false);
+    }
+  }
+
   return (
     <Layout
       title="Funcionários"
@@ -246,6 +299,13 @@ export default function Funcionarios() {
             <h3 id="funcionarios-list-title">Resultado da pesquisa</h3>
             <p className="search-summary">{paginacao ? resumo(paginacao.total) : ''}</p>
           </div>
+          <button
+            className="button button--primary"
+            type="button"
+            onClick={() => setModalNovoCargoAberto(true)}
+          >
+            Novo cargo
+          </button>
         </header>
 
         {loading && <Feedback type="loading" message="Pesquisando funcionários..." />}
@@ -417,6 +477,83 @@ export default function Funcionarios() {
           </div>
         </dialog>
       )}
+        {modalNovoCargoAberto && (
+          <dialog 
+            ref={novoCargoDialogRef}
+            className="dialog"
+            onClose={() => setModalNovoCargoAberto(false)}
+          >
+            <div className="dialog__header">
+              <h2>Novo cargo</h2>
+              <button
+                className="dialog__close"
+                type="button"
+                onClick={() => novoCargoDialogRef.current?.close()}
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="dialog__body">
+              <div className="field">
+                <label htmlFor="nome-novo-cargo">Nome</label>
+
+                <input
+                  id="nome-novo-cargo"
+                  type="text"
+                  value={nomeNovoCargo}
+                  onChange={(e) => setNomeNovoCargo(e.target.value)}
+                  placeholder="Ex.: Eletricista"
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="descricao-novo-cargo">Descrição</label>
+
+                <input
+                  id="descricao-novo-cargo"
+                  type="text"
+                  value={descricaoNovoCargo}
+                  onChange={(e) => setDescricaoNovoCargo(e.target.value)}
+                  placeholder="Ex.: Responsável por serviços elétricos"
+                />
+              </div>
+              {erroNovoCargo && (
+                <Feedback
+                  type="error"
+                  message={erroNovoCargo}
+                />
+              )}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '10px',
+                  marginTop: '20px'
+                }}
+              >
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => novoCargoDialogRef.current?.close()}
+                  disabled={salvandoNovoCargo}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={handleCadastrarCargo}
+                  disabled={salvandoNovoCargo}
+                >
+                  {salvandoNovoCargo ? 'Cadastrando...' : 'Cadastrar'}
+                </button>
+              </div>
+            </div>
+          </dialog>
+        )}
     </Layout>
   );
 }

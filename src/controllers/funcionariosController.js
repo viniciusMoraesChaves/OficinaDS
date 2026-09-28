@@ -4,6 +4,9 @@ const {
   parseEmployeeFilters,
   buildPagination
 } = require('../utils/queryParams');
+const cargosRepository = require('../repositories/cargosRepository');
+const perfisRepository = require('../repositories/perfisRepository');
+const { PERFIS } = require('../utils/perfis');
 
 async function search(req, res) {
   const pagination = parsePagination(req.query);
@@ -40,9 +43,31 @@ async function updateCargo(req, res) {
     });
   }
 
-  const affectedRows = await funcionariosRepository.updateCargo(
+  const cargo = await cargosRepository.findById(idCargo);
+
+  if (!cargo) {
+    return res.status(404).json({
+      mensagem: 'Cargo não encontrado.'
+    });
+  }
+
+  const nomePerfil =
+    cargo.nome === 'Gerente'
+      ? PERFIS.ADMINISTRADOR
+      : PERFIS.FUNCIONARIO;
+
+  const perfil = await perfisRepository.buscarPorNome(nomePerfil);
+
+  if (!perfil) {
+    return res.status(500).json({
+      mensagem: 'Perfil correspondente ao cargo não encontrado.'
+    });
+  }
+
+  const affectedRows = await funcionariosRepository.updateCargoEPerfil(
     idFuncionario,
-    idCargo
+    idCargo,
+    perfil.id
   );
 
   if (affectedRows === 0) {
