@@ -23,7 +23,7 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false }));
 
 app.get('/api/saude', (req, res) => {
-  res.json({ status: 'ok', aplicacao: 'OficinaOS' });
+  res.json({ status: 'ok', aplicacao: 'OficinaDS' });
 });
 
 app.use('/api', authRoutes);
