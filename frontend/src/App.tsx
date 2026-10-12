@@ -10,6 +10,7 @@ import Usuarios from './pages/Usuarios';
 import Financeiro from './pages/Financeiro';
 import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
+import Diagnosticos from './pages/Diagnosticos';
 
 export default function App() {
   return (
@@ -50,6 +51,14 @@ export default function App() {
             element={
               <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
                 <Financeiro />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/diagnosticos"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Diagnosticos />
               </RequireAuth>
             }
           />

@@ -10,6 +10,7 @@ const { exigirAutenticacao } = require('./middlewares/authMiddleware');
 const clientesRoutes = require('./routes/clientesRoutes');
 const funcionariosRoutes = require('./routes/funcionariosRoutes');
 const cargosRoutes = require('./routes/cargosRoutes');
+const diagnosticosRoutes = require('./routes/diagnosticosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -30,6 +31,7 @@ app.use('/api', authRoutes);
 app.use('/api/clientes', exigirAutenticacao, clientesRoutes);
 app.use('/api/funcionarios', funcionariosRoutes);
 app.use('/api/cargos', cargosRoutes);
+app.use('/api/diagnosticos', diagnosticosRoutes);
 app.use('/api', notFoundApi);
 
 // Front-end React (build do Vite)
