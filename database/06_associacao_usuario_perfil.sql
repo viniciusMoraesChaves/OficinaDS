@@ -3,14 +3,11 @@
 USE oficina_ds;
 
 ALTER TABLE usuario
-  ADD COLUMN IF NOT EXISTS id_perfil INT UNSIGNED NULL AFTER senha_hash;
+  ADD COLUMN id_perfil INT UNSIGNED NULL AFTER senha_hash;
 
 ALTER TABLE usuario
   ADD CONSTRAINT fk_usuario_perfil
     FOREIGN KEY (id_perfil) REFERENCES perfil (id_perfil);
-
-ALTER TABLE usuario
-  ADD INDEX IF NOT EXISTS idx_usuario_perfil (id_perfil);
 
 -- Usuários de exemplo para testar os dois perfis (senha_hash é só um valor fictício).
 INSERT INTO usuario (id_usuario, email, senha_hash, id_perfil, ativo) VALUES

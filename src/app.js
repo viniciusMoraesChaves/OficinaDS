@@ -12,6 +12,8 @@ const funcionariosRoutes = require('./routes/funcionariosRoutes');
 const cargosRoutes = require('./routes/cargosRoutes');
 const diagnosticosRoutes = require('./routes/diagnosticosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
+const usuariosRoutes = require('./routes/usuariosRoutes');
+const financeiroRoutes = require('./routes/financeiroRoutes');
 
 const app = express();
 const distDirectory = path.resolve(__dirname, '../frontend/dist');
@@ -32,6 +34,8 @@ app.use('/api/clientes', exigirAutenticacao, clientesRoutes);
 app.use('/api/funcionarios', funcionariosRoutes);
 app.use('/api/cargos', cargosRoutes);
 app.use('/api/diagnosticos', diagnosticosRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/financeiro', financeiroRoutes);
 app.use('/api', notFoundApi);
 
 // Front-end React (build do Vite)
