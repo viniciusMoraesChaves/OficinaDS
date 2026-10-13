@@ -7,6 +7,8 @@ import NotFound from './pages/NotFound';
 import Funcionarios from './pages/Funcionarios';
 import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
+import VeiculoHistorico from './pages/Veiculohistorico';
+import Veiculos from './pages/Veiculos';
 
 export default function App() {
   return (
@@ -19,6 +21,8 @@ export default function App() {
           <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
           <Route path="/clientes" element={<RequireAuth><Clientes /></RequireAuth>} />
           <Route path="/funcionarios" element={<RequireAuth><Funcionarios /></RequireAuth>} />
+          <Route path="/veiculos" element={<RequireAuth><Veiculos /></RequireAuth>} />
+<Route path="/veiculos/:id/historico" element={<RequireAuth><VeiculoHistorico /></RequireAuth>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

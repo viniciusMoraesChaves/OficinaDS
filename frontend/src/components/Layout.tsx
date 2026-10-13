@@ -12,6 +12,7 @@ const links = [
   { to: '/', label: 'Início', icon: '⌂', end: true },
   { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
   { to: '/funcionarios', label: 'Funcionários', icon: '⚙', end: false },
+  { to: '/veiculos', label: 'Veículos', icon: '🚗', end: false },
 ];
 
 export function Layout({ title, subtitle, documentTitle, children }: LayoutProps) {

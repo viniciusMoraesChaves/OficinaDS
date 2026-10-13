@@ -8,6 +8,8 @@ const { exigirAutenticacao } = require('./middlewares/authMiddleware');
 
 const clientesRoutes = require('./routes/clientesRoutes');
 const funcionariosRoutes = require('./routes/funcionariosRoutes');
+const historicoRoutes = require('./routes/historicoRoutes');
+const veiculosRoutes = require('./routes/veiculosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -23,18 +25,15 @@ app.get('/api/saude', (req, res) => {
   res.json({ status: 'ok', aplicacao: 'OficinaOS' });
 });
 
-app.get('/api/saude', (req, res) => {
-  res.json({ status: 'ok', aplicacao: 'OficinaOS' });
-});
-
 app.use('/api', authRoutes);
 
 app.use('/api/clientes', exigirAutenticacao, clientesRoutes);
 app.use('/api/funcionarios', exigirAutenticacao, funcionariosRoutes);
-app.use('/api', notFoundApi);
+// GET /api/veiculos/:id/historico?inicio=AAAA-MM-DD&fim=AAAA-MM-DD
+app.use('/api/veiculos', exigirAutenticacao, veiculosRoutes);
 
-app.use('/api/clientes', clientesRoutes);
-app.use('/api/funcionarios', funcionariosRoutes);
+// GET /api/veiculos/:id/historico?inicio=AAAA-MM-DD&fim=AAAA-MM-DD
+app.use('/api/veiculos', exigirAutenticacao, historicoRoutes);
 app.use('/api', notFoundApi);
 
 // Front-end React (build do Vite)
