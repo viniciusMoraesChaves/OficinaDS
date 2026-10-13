@@ -13,6 +13,7 @@ const usuariosRoutes = require('./routes/usuariosRoutes');
 const financeiroRoutes = require('./routes/financeiroRoutes');
 const atendimentosRoutes = require('./routes/atendimentosRoutes');
 const orcamentosRoutes = require('./routes/orcamentosRoutes');
+const diagnosticosRoutes = require('./routes/diagnosticosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -37,6 +38,7 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/financeiro', financeiroRoutes);
 app.use('/api/atendimentos', atendimentosRoutes);
 app.use('/api/orcamentos', orcamentosRoutes);
+app.use('/api/diagnosticos', diagnosticosRoutes);
 app.use('/api', notFoundApi);
 
 // Front-end React (build do Vite)

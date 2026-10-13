@@ -19,7 +19,7 @@ test('GET /api/saude confirma que o servidor responde', async (t) => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     status: 'ok',
-    aplicacao: 'OficinaOS'
+    aplicacao: 'OficinaDS'
   });
 });
 
