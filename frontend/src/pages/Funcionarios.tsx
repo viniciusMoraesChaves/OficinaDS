@@ -43,10 +43,25 @@ export default function Funcionarios() {
   const [descricaoNovoCargo, setDescricaoNovoCargo] = useState('');
   const [salvandoNovoCargo, setSalvandoNovoCargo] = useState(false);
   const [erroNovoCargo, setErroNovoCargo] = useState('');
+  const [recarregar, setRecarregar] = useState(0);
+
+  const [modalNovoFuncionarioAberto, setModalNovoFuncionarioAberto] = useState(false);
+  const [novoFuncionario, setNovoFuncionario] = useState({
+    nome: '',
+    cpf: '',
+    email: '',
+    telefone: '',
+    dataAdmissao: '',
+    idCargo: '',
+    senha: ''
+  });
+  const [salvandoNovoFuncionario, setSalvandoNovoFuncionario] = useState(false);
+  const [erroNovoFuncionario, setErroNovoFuncionario] = useState('');
 
   const searchRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const novoCargoDialogRef = useRef<HTMLDialogElement>(null);
+  const novoFuncionarioDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +98,7 @@ export default function Funcionarios() {
     return () => {
       cancelled = true;
     };
-  }, [filtros, pagina]);
+  }, [filtros, pagina, recarregar]);
 
   useEffect(() => {
     async function carregarCargos() {
@@ -113,6 +128,14 @@ export default function Funcionarios() {
       dialog.showModal();
     }
   }, [modalNovoCargoAberto]);
+
+  useEffect(() => {
+    const dialog = novoFuncionarioDialogRef.current;
+
+    if (modalNovoFuncionarioAberto && dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }, [modalNovoFuncionarioAberto]);
 
   function aplicar(busca: string, status: StatusFiltro) {
     setFiltros({ busca, status });
@@ -238,6 +261,70 @@ export default function Funcionarios() {
     }
   }
 
+  async function handleCadastrarFuncionario() {
+    const { nome, cpf, email, telefone, dataAdmissao, idCargo, senha } = novoFuncionario;
+
+    if (!nome.trim()) {
+      setErroNovoFuncionario('Informe o nome do funcionário.');
+      return;
+    }
+    if (cpf.replace(/\D/g, '').length !== 11) {
+      setErroNovoFuncionario('Informe um CPF válido com 11 dígitos.');
+      return;
+    }
+    if (!email.trim()) {
+      setErroNovoFuncionario('Informe o e-mail do funcionário.');
+      return;
+    }
+    if (!dataAdmissao) {
+      setErroNovoFuncionario('Informe a data de admissão.');
+      return;
+    }
+    if (!idCargo) {
+      setErroNovoFuncionario('Selecione um cargo.');
+      return;
+    }
+    if (senha.length < 6) {
+      setErroNovoFuncionario('A senha deve ter ao menos 6 caracteres.');
+      return;
+    }
+
+    setSalvandoNovoFuncionario(true);
+    setErroNovoFuncionario('');
+
+    try {
+      const criado = await apiFetch<{ posicao?: number }>('/api/funcionarios', {
+        method: 'POST',
+        body: JSON.stringify({
+          nome: nome.trim(),
+          cpf,
+          email: email.trim(),
+          telefone,
+          dataAdmissao,
+          idCargo: Number(idCargo),
+          senha
+        })
+      });
+
+      setNovoFuncionario({ nome: '', cpf: '', email: '', telefone: '', dataAdmissao: '', idCargo: '', senha: '' });
+      novoFuncionarioDialogRef.current?.close();
+
+      // Limpa os filtros e abre a página onde o novo funcionário aparece
+      // (a lista é paginada e ordenada por nome).
+      setInputBusca('');
+      setInputStatus('todos');
+      setFiltros({ busca: '', status: 'todos' });
+      setPagina(criado.posicao ? Math.max(1, Math.ceil(criado.posicao / LIMITE)) : 1);
+      setRecarregar((v) => v + 1);
+    } catch (err) {
+      setErroNovoFuncionario(
+        err instanceof Error ? err.message : 'Erro ao cadastrar funcionário.'
+      );
+    } finally {
+      setSalvandoNovoFuncionario(false);
+    }
+  }
+
   return (
     <Layout
       title="Funcionários"
@@ -246,7 +333,6 @@ export default function Funcionarios() {
     >
       <section className="intro">
         <div>
-          <span className="story-label">DM-100</span>
           <h2>Pesquisar funcionários</h2>
           <p>
             Digite um nome, CPF, e-mail ou cargo. Você também pode limitar o
@@ -299,13 +385,22 @@ export default function Funcionarios() {
             <h3 id="funcionarios-list-title">Resultado da pesquisa</h3>
             <p className="search-summary">{paginacao ? resumo(paginacao.total) : ''}</p>
           </div>
-          <button
-            className="button button--primary"
-            type="button"
-            onClick={() => setModalNovoCargoAberto(true)}
-          >
-            Novo cargo
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={() => setModalNovoCargoAberto(true)}
+            >
+              Novo cargo
+            </button>
+            <button
+              className="button button--primary"
+              type="button"
+              onClick={() => setModalNovoFuncionarioAberto(true)}
+            >
+              Novo funcionário
+            </button>
+          </div>
         </header>
 
         {loading && <Feedback type="loading" message="Pesquisando funcionários..." />}
@@ -549,6 +644,128 @@ export default function Funcionarios() {
                   disabled={salvandoNovoCargo}
                 >
                   {salvandoNovoCargo ? 'Cadastrando...' : 'Cadastrar'}
+                </button>
+              </div>
+            </div>
+          </dialog>
+        )}
+        {modalNovoFuncionarioAberto && (
+          <dialog
+            ref={novoFuncionarioDialogRef}
+            className="dialog"
+            onClose={() => setModalNovoFuncionarioAberto(false)}
+          >
+            <div className="dialog__header">
+              <h2>Novo funcionário</h2>
+              <button
+                className="dialog__close"
+                type="button"
+                onClick={() => novoFuncionarioDialogRef.current?.close()}
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="dialog__body">
+              <div className="field">
+                <label htmlFor="novo-func-nome">Nome</label>
+                <input
+                  id="novo-func-nome"
+                  type="text"
+                  value={novoFuncionario.nome}
+                  onChange={(e) => setNovoFuncionario((v) => ({ ...v, nome: e.target.value }))}
+                  placeholder="Ex.: Maria Souza"
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="novo-func-cpf">CPF</label>
+                <input
+                  id="novo-func-cpf"
+                  type="text"
+                  value={novoFuncionario.cpf}
+                  onChange={(e) => setNovoFuncionario((v) => ({ ...v, cpf: e.target.value }))}
+                  placeholder="Somente números"
+                  maxLength={14}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="novo-func-email">E-mail</label>
+                <input
+                  id="novo-func-email"
+                  type="email"
+                  value={novoFuncionario.email}
+                  onChange={(e) => setNovoFuncionario((v) => ({ ...v, email: e.target.value }))}
+                  placeholder="maria.souza@oficina.test"
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="novo-func-telefone">Telefone</label>
+                <input
+                  id="novo-func-telefone"
+                  type="text"
+                  value={novoFuncionario.telefone}
+                  onChange={(e) => setNovoFuncionario((v) => ({ ...v, telefone: e.target.value }))}
+                  placeholder="(11) 90000-0000"
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="novo-func-admissao">Data de admissão</label>
+                <input
+                  id="novo-func-admissao"
+                  type="date"
+                  value={novoFuncionario.dataAdmissao}
+                  onChange={(e) => setNovoFuncionario((v) => ({ ...v, dataAdmissao: e.target.value }))}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="novo-func-cargo">Cargo</label>
+                <select
+                  id="novo-func-cargo"
+                  value={novoFuncionario.idCargo}
+                  onChange={(e) => setNovoFuncionario((v) => ({ ...v, idCargo: e.target.value }))}
+                >
+                  <option value="">Selecione um cargo</option>
+                  {cargos.map((cargo) => (
+                    <option key={cargo.id} value={cargo.id}>{cargo.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label htmlFor="novo-func-senha">Senha de acesso</label>
+                <input
+                  id="novo-func-senha"
+                  type="password"
+                  value={novoFuncionario.senha}
+                  onChange={(e) => setNovoFuncionario((v) => ({ ...v, senha: e.target.value }))}
+                  placeholder="Mínimo de 6 caracteres"
+                />
+              </div>
+
+              {erroNovoFuncionario && <Feedback type="error" message={erroNovoFuncionario} />}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => novoFuncionarioDialogRef.current?.close()}
+                  disabled={salvandoNovoFuncionario}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={handleCadastrarFuncionario}
+                  disabled={salvandoNovoFuncionario}
+                >
+                  {salvandoNovoFuncionario ? 'Cadastrando...' : 'Cadastrar'}
                 </button>
               </div>
             </div>

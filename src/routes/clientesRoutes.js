@@ -9,6 +9,8 @@ const router = express.Router();
 const equipe = protegerRota(PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO);
 
 router.get('/', equipe, clientesController.list);
+// precisa vir antes de "/:id", senão "opcoes" seria interpretado como id
+router.get('/opcoes', equipe, clientesController.opcoes);
 router.get('/:id', equipe, clientesController.detail);
 
 module.exports = router;

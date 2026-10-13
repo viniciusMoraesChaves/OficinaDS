@@ -5,11 +5,14 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 const authRoutes = require('./routes/authRoutes');
-const { exigirAutenticacao } = require('./middlewares/authMiddleware');
 
 const clientesRoutes = require('./routes/clientesRoutes');
 const funcionariosRoutes = require('./routes/funcionariosRoutes');
 const cargosRoutes = require('./routes/cargosRoutes');
+const usuariosRoutes = require('./routes/usuariosRoutes');
+const financeiroRoutes = require('./routes/financeiroRoutes');
+const atendimentosRoutes = require('./routes/atendimentosRoutes');
+const orcamentosRoutes = require('./routes/orcamentosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -27,9 +30,13 @@ app.get('/api/saude', (req, res) => {
 });
 
 app.use('/api', authRoutes);
-app.use('/api/clientes', exigirAutenticacao, clientesRoutes);
+app.use('/api/clientes', clientesRoutes);
 app.use('/api/funcionarios', funcionariosRoutes);
 app.use('/api/cargos', cargosRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/financeiro', financeiroRoutes);
+app.use('/api/atendimentos', atendimentosRoutes);
+app.use('/api/orcamentos', orcamentosRoutes);
 app.use('/api', notFoundApi);
 
 // Front-end React (build do Vite)

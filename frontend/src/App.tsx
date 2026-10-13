@@ -8,6 +8,8 @@ import NotFound from './pages/NotFound';
 import Funcionarios from './pages/Funcionarios';
 import Usuarios from './pages/Usuarios';
 import Financeiro from './pages/Financeiro';
+import Atendimentos from './pages/Atendimentos';
+import MeusOrcamentos from './pages/MeusOrcamentos';
 import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
 
@@ -34,6 +36,22 @@ export default function App() {
             element={
               <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
                 <Funcionarios />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/atendimentos"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Atendimentos />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/meus-orcamentos"
+            element={
+              <RequireAuth perfis={[PERFIS.CLIENTE]}>
+                <MeusOrcamentos />
               </RequireAuth>
             }
           />

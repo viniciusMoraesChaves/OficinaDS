@@ -234,6 +234,8 @@ Abra o MySQL Workbench, conecte-se ao servidor local e execute os arquivos da pa
 2. `02_dados_teste.sql` — adiciona dados fictícios;
 3. `03_usuario_aplicacao.sql` — cria o usuário local usado pela aplicação.
 
+4. `05_perfis.sql` a `12_cadastro_clientes_e_atendimento.sql` — perfis, permissões, atendimentos/orçamentos e cadastro de clientes (executar em ordem, como root).
+
 O arquivo `04_consultas_para_estudar.sql` é opcional e contém exemplos de consultas.
 
 ### 4. Configure as variáveis de ambiente

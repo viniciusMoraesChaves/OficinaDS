@@ -33,4 +33,9 @@ async function detail(req, res) {
   return res.json({ dados: client });
 }
 
-module.exports = { list, detail };
+async function opcoes(req, res) {
+  const clientes = await clientesRepository.listarOpcoes();
+  res.json({ dados: clientes });
+}
+
+module.exports = { list, detail, opcoes };

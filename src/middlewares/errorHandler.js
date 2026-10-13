@@ -12,7 +12,7 @@ function errorHandler(error, req, res, next) {
 
   if (error.statusCode) {
     return res.status(error.statusCode).json({
-      erro: error.name === 'ValidationError' ? 'PARAMETRO_INVALIDO' : 'ERRO',
+      erro: error.codigo || (error.name === 'ValidationError' ? 'PARAMETRO_INVALIDO' : 'ERRO'),
       mensagem: error.message
     });
   }
@@ -30,6 +30,20 @@ function errorHandler(error, req, res, next) {
     return res.status(503).json({
       erro: 'ACESSO_BANCO_NEGADO',
       mensagem: 'O MySQL recusou o usuário ou a senha informados no arquivo .env.'
+    });
+  }
+
+  if (error.code === 'ER_DUP_ENTRY') {
+    return res.status(409).json({
+      erro: 'CONFLITO',
+      mensagem: 'Já existe um registro com estes dados (CPF, e-mail ou placa duplicados).'
+    });
+  }
+
+  if (error.code === 'ER_TABLEACCESS_DENIED_ERROR' || error.code === 'ER_COLUMNACCESS_DENIED_ERROR') {
+    return res.status(503).json({
+      erro: 'PERMISSAO_BANCO_NEGADA',
+      mensagem: 'O usuário do banco não tem permissão para esta operação. Execute os scripts de grants da pasta database (até o 12).'
     });
   }
 

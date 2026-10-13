@@ -49,7 +49,6 @@ export default function Clientes() {
     >
       <section className="intro">
         <div>
-          <span className="story-label">DM-67</span>
           <h2>Consultar clientes</h2>
           <p>
             Consulte todos os clientes cadastrados e abra os detalhes para

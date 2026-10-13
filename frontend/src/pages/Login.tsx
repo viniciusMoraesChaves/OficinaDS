@@ -6,7 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import { apiPost } from '../services/api';
 import type { Perfil } from '../types/perfil';
 
+type TipoAcesso = 'oficina' | 'cliente';
+
 export default function Login() {
+  const [tipoAcesso, setTipoAcesso] = useState<TipoAcesso>('oficina');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +30,7 @@ export default function Login() {
     try {
       const { dados } = await apiPost<{ dados: { token: string; perfil: Perfil } }>(
         '/api/login',
-        { email, senha }
+        { email, senha, tipoAcesso }
       );
       login(dados.token, dados.perfil);
       navigate('/');
@@ -44,6 +47,33 @@ export default function Login() {
       <p className="auth-form__subtitle">
         Insira suas credenciais para acessar o painel.
       </p>
+
+      <div className="auth-field" role="radiogroup" aria-label="Como você acessa o OficinaOS?">
+        <label htmlFor="tipo-acesso-oficina" style={{ marginBottom: '8px', display: 'block' }}>
+          Como você quer entrar?
+        </label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            id="tipo-acesso-oficina"
+            type="button"
+            className={`button ${tipoAcesso === 'oficina' ? 'button--primary' : 'button--secondary'}`}
+            aria-pressed={tipoAcesso === 'oficina'}
+            onClick={() => setTipoAcesso('oficina')}
+            style={{ flex: 1 }}
+          >
+            Sou da oficina
+          </button>
+          <button
+            type="button"
+            className={`button ${tipoAcesso === 'cliente' ? 'button--primary' : 'button--secondary'}`}
+            aria-pressed={tipoAcesso === 'cliente'}
+            onClick={() => setTipoAcesso('cliente')}
+            style={{ flex: 1 }}
+          >
+            Sou cliente
+          </button>
+        </div>
+      </div>
 
       {erro && <p className="auth-form__error">{erro}</p>}
 

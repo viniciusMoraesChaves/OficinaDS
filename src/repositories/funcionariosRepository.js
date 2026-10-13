@@ -54,12 +54,27 @@ async function search({ busca, status, limite, offset }) {
      FROM funcionario f
      INNER JOIN cargo ca ON ca.id_cargo = f.id_cargo
      ${where.clause}
-     ORDER BY f.nome ASC
+     ORDER BY f.nome ASC, f.id_funcionario ASC
      LIMIT ? OFFSET ?`,
     [...where.params, limite, offset]
   );
 
   return { rows, total: countRows[0].total };
+}
+
+// Posição (1, 2, 3...) do funcionário na listagem sem filtros. O front usa
+// para abrir a página em que o funcionário recém-criado aparece.
+async function posicaoNaLista(idFuncionario) {
+  const [rows] = await pool.execute(
+    `SELECT COUNT(*) AS posicao
+     FROM funcionario f
+     INNER JOIN funcionario alvo ON alvo.id_funcionario = ?
+     WHERE f.nome < alvo.nome
+        OR (f.nome = alvo.nome AND f.id_funcionario <= alvo.id_funcionario)`,
+    [idFuncionario]
+  );
+
+  return Number(rows[0].posicao);
 }
 
 async function updateCargoEPerfil(idFuncionario, idCargo, idPerfil) {
@@ -109,4 +124,21 @@ async function updateCargoEPerfil(idFuncionario, idCargo, idPerfil) {
   }
 }
 
-module.exports = { search, updateCargoEPerfil };
+async function findByUsuarioId(idUsuario) {
+  const [rows] = await pool.execute(
+    'SELECT id_funcionario AS id, nome FROM funcionario WHERE id_usuario = ?',
+    [idUsuario]
+  );
+  return rows[0] || null;
+}
+
+async function criar({ nome, cpf, email, telefone, dataAdmissao, idCargo, idUsuario }) {
+  const [resultado] = await pool.execute(
+    `INSERT INTO funcionario (id_usuario, id_cargo, nome, cpf, email, telefone, data_admissao, ativo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
+    [idUsuario, idCargo, nome, cpf, email, telefone, dataAdmissao]
+  );
+  return { id: resultado.insertId, nome, cpf, email, telefone, dataAdmissao, idCargo };
+}
+
+module.exports = { search, updateCargoEPerfil, findByUsuarioId, criar, posicaoNaLista };

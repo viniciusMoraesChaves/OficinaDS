@@ -1,4 +1,5 @@
 export type Veiculo = {
+  id: number;
   placa: string;
   marca: string;
   modelo: string;
@@ -36,4 +37,11 @@ export type Paginacao = {
 export type ListaClientesResponse = {
   dados: ClienteResumo[];
   paginacao: Paginacao;
+};
+
+export type ClienteOpcao = {
+  id: number;
+  nome: string;
+  cpf: string;
+  veiculos: Pick<Veiculo, 'id' | 'placa' | 'marca' | 'modelo'>[];
 };
