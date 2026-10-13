@@ -9,12 +9,33 @@ async function veiculoPertenceAoCliente(idVeiculo, idCliente) {
 }
 
 async function criarAtendimento({ idCliente, idVeiculo, idFuncionario }) {
-  const [resultado] = await pool.execute(
-    `INSERT INTO atendimento (id_cliente, id_veiculo, id_funcionario, status)
-     VALUES (?, ?, ?, 'aberto')`,
-    [idCliente, idVeiculo, idFuncionario]
-  );
-  return { id: resultado.insertId, idCliente, idVeiculo, idFuncionario, status: 'aberto' };
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [resultado] = await connection.execute(
+      `INSERT INTO atendimento (id_cliente, id_veiculo, id_funcionario, status)
+       VALUES (?, ?, ?, 'aberto')`,
+      [idCliente, idVeiculo, idFuncionario]
+    );
+
+    // Todo atendimento gera a ordem de serviço usada pelos diagnósticos.
+    await connection.execute(
+      `INSERT INTO ordem_servico
+         (id_cliente, id_veiculo, id_funcionario, id_atendimento, status, descricao_problema)
+       VALUES (?, ?, ?, ?, 'Aberta', ?)`,
+      [idCliente, idVeiculo, idFuncionario, resultado.insertId, `Atendimento #${resultado.insertId}`]
+    );
+
+    await connection.commit();
+    return { id: resultado.insertId, idCliente, idVeiculo, idFuncionario, status: 'aberto' };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 async function listarAtendimentosAbertos() {
@@ -54,6 +75,17 @@ async function cancelarAtendimento(idAtendimento) {
     `UPDATE atendimento SET status = 'cancelado' WHERE id_atendimento = ? AND status = 'aberto'`,
     [idAtendimento]
   );
+
+  if (resultado.affectedRows > 0) {
+    // Atendimento encerrado: a ordem de serviço deixa de aceitar diagnósticos.
+    await pool.execute(
+      `UPDATE ordem_servico
+       SET status = 'Encerrada', data_fechamento = NOW()
+       WHERE id_atendimento = ? AND data_fechamento IS NULL`,
+      [idAtendimento]
+    );
+  }
+
   return resultado.affectedRows > 0;
 }
 

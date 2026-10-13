@@ -39,7 +39,9 @@ async function findOptions() {
      FROM ordem_servico os
      INNER JOIN cliente c ON c.id_cliente = os.id_cliente
      INNER JOIN veiculo v ON v.id_veiculo = os.id_veiculo
+     LEFT JOIN atendimento a ON a.id_atendimento = os.id_atendimento
      WHERE os.data_fechamento IS NULL
+       AND (os.id_atendimento IS NULL OR a.status = 'aberto')
      ORDER BY os.id_ordem DESC`
   );
 
