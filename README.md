@@ -9,8 +9,9 @@ Projeto acadêmico desenvolvido para centralizar o atendimento, os clientes, os 
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-f59e0b)
 ![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=000000)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8%2B-4479A1?logo=mysql&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6%2B-F7DF1E?logo=javascript&logoColor=000000)
 
 </div>
 
@@ -26,6 +27,9 @@ Histórias:
 | --- | --- | :---: |
 | **DM-67** | Consultar clientes | ✅ Implementada |
 | **DM-100** | Pesquisar funcionários | ✅ Implementada |
+| **DM-180** | Registrar diagnóstico | ✅ Implementada |
+| — | Cadastro, login e perfis de acesso | ✅ Implementada |
+| — | Reagendar serviço | ✅ Implementada |
 
 > O sistema está em desenvolvimento. As funcionalidades marcadas como planejadas no roadmap ainda serão integradas pelo grupo.
 
@@ -50,8 +54,33 @@ Histórias:
 - pesquisa por e-mail;
 - pesquisa por cargo;
 - filtro de funcionários ativos e inativos;
+- alteração do cargo de um funcionário;
 - paginação dos resultados;
 - mensagem quando não existem correspondências.
+
+### DM-180 — Registrar diagnóstico
+
+- listagem dos diagnósticos com ordem de serviço, veículo, cliente e responsável;
+- registro de um novo diagnóstico;
+- edição e exclusão de diagnósticos.
+
+### Cadastro, login e perfis de acesso
+
+- cadastro e login com senha criptografada e token JWT;
+- três perfis: **Administrador**, **Funcionario** e **Cliente**;
+- menu e rotas da tela adaptados ao perfil;
+- bloqueio no backend (HTTP 401 sem login e 403 sem permissão);
+- listagem de usuários e resumo financeiro para o Administrador.
+
+### Reagendamento de serviços
+
+- listagem de agendamentos com status;
+- criação de um novo agendamento;
+- reagendamento de data e horário;
+- consulta dos horários disponíveis;
+- validação de status permitido, antecedência mínima, expediente e conflitos de horário (profissional, veículo e capacidade da oficina).
+
+As regras e a API estão descritas em [`docs/REAGENDAMENTO.md`](docs/REAGENDAMENTO.md).
 
 ### Recursos gerais
 
@@ -64,15 +93,29 @@ Histórias:
 - configurações sensíveis separadas em variáveis de ambiente;
 - testes automatizados com o test runner nativo do Node.js.
 
+## Perfis e permissões
+
+| Área | Administrador | Funcionario | Cliente |
+| --- | :---: | :---: | :---: |
+| Início | ✅ | ✅ | ✅ |
+| Clientes | ✅ | ✅ | ❌ |
+| Diagnósticos | ✅ | ✅ | ❌ |
+| Agendamentos | ✅ | ✅ | ❌ |
+| Funcionários | ✅ | ❌ | ❌ |
+| Usuários | ✅ | ❌ | ❌ |
+| Financeiro | ✅ | ❌ | ❌ |
+
+Quem se cadastra pela tela de cadastro nasce como **Funcionario**. Para promover alguém a Administrador, altere o perfil no banco (veja [Criar usuários de teste](#criar-usuários-de-teste)). O portal do **Cliente** ainda não existe.
+
 ## Tecnologias
 
 | Camada | Tecnologias |
 | --- | --- |
-| Frontend | HTML5, CSS3 e JavaScript |
+| Frontend | React, TypeScript e Vite |
 | Backend | Node.js e Express |
 | Banco de dados | MySQL |
 | Comunicação | API REST e JSON |
-| Segurança | Helmet, variáveis de ambiente e consultas parametrizadas |
+| Segurança | JWT, bcrypt, Helmet, variáveis de ambiente e consultas parametrizadas |
 | Desenvolvimento | VS Code, Nodemon e MySQL Workbench |
 | Versionamento | Git e GitHub |
 
@@ -82,8 +125,9 @@ O projeto separa apresentação, regras HTTP e acesso a dados para facilitar a i
 
 ```mermaid
 flowchart LR
-    A[Frontend<br/>HTML, CSS e JavaScript] -->|HTTP / JSON| B[Rotas Express]
-    B --> C[Controllers]
+    A[Frontend<br/>React + TypeScript] -->|HTTP / JSON| B[Rotas Express]
+    B --> M[Middlewares<br/>login e perfis]
+    M --> C[Controllers]
     C --> D[Repositories]
     D -->|SQL parametrizado| E[(MySQL)]
     E --> D
@@ -94,10 +138,11 @@ flowchart LR
 ### Responsabilidade de cada camada
 
 - **Frontend:** apresenta as telas e recebe as ações do usuário.
-- **Routes:** relacionam os endereços da API aos controllers.
-- **Controllers:** validam os parâmetros e montam as respostas HTTP.
+- **Routes:** relacionam os endereços da API aos controllers e definem quais perfis têm acesso.
+- **Middlewares:** verificam o login, carregam o perfil, validam a permissão e tratam erros.
+- **Controllers:** validam os parâmetros, aplicam as regras e montam as respostas HTTP.
 - **Repositories:** concentram as consultas ao MySQL.
-- **Middlewares:** tratam erros e comportamentos compartilhados.
+- **Utils:** funções de apoio e regras puras, como as de agendamento em `src/utils/regrasAgendamento.js`.
 - **Banco:** armazena os dados de forma persistente.
 
 ## Estrutura do projeto
@@ -108,18 +153,31 @@ OficinaDS/
 │   ├── 01_schema.sql
 │   ├── 02_dados_teste.sql
 │   ├── 03_usuario_aplicacao.sql
-│   └── 04_consultas_para_estudar.sql
+│   ├── 04_consultas_para_estudar.sql
+│   ├── 05_perfis.sql
+│   ├── 06_associacao_usuario_perfil.sql
+│   ├── 07_perfil_cliente.sql
+│   ├── 08_diagnosticos.sql
+│   └── 09_agendamentos.sql
 ├── docs/
 │   ├── DER_DO_MODULO.md
 │   ├── INTEGRACAO_EQUIPE.md
+│   ├── REAGENDAMENTO.md
 │   └── SUBTAREFAS_E_ACEITE.md
-├── public/
-│   ├── assets/
-│   │   ├── css/
-│   │   └── js/
-│   ├── clientes.html
-│   ├── funcionarios.html
-│   └── index.html
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── styles/
+│   │   ├── types/
+│   │   ├── utils/
+│   │   └── App.tsx
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
 ├── src/
 │   ├── config/
 │   ├── controllers/
@@ -136,19 +194,30 @@ OficinaDS/
 └── README.md
 ```
 
-## Modelo de dados deste módulo
+## Modelo de dados
 
-As histórias atuais utilizam o seguinte recorte do DER geral:
+O recorte do DER geral usado pelas funcionalidades atuais:
 
 ```mermaid
 erDiagram
+    PERFIL ||--o{ USUARIO : classifica
     USUARIO ||--o| CLIENTE : identifica
     USUARIO ||--o| FUNCIONARIO : identifica
     CARGO ||--o{ FUNCIONARIO : possui
     CLIENTE ||--o{ VEICULO : possui
+    VEICULO ||--o{ AGENDAMENTO : recebe
+    FUNCIONARIO ||--o{ AGENDAMENTO : atende
+    CLIENTE ||--o{ AGENDAMENTO : solicita
+
+    PERFIL {
+        int id_perfil PK
+        varchar nome UK
+        varchar descricao
+    }
 
     USUARIO {
         int id_usuario PK
+        int id_perfil FK
         varchar email UK
         varchar senha_hash
         boolean ativo
@@ -193,9 +262,22 @@ erDiagram
         date data_admissao
         boolean ativo
     }
+
+    AGENDAMENTO {
+        int id_agendamento PK
+        int id_cliente FK
+        int id_veiculo FK
+        int id_funcionario FK
+        varchar servico
+        datetime data_hora
+        smallint duracao_minutos
+        varchar status
+        smallint qtd_reagendamentos
+        datetime reagendado_em
+    }
 ```
 
-O DER completo e as observações sobre as relações estão em [`docs/DER_DO_MODULO.md`](docs/DER_DO_MODULO.md).
+O DER completo e as observações sobre as relações estão em [`docs/DER_DO_MODULO.md`](docs/DER_DO_MODULO.md). As tabelas de ordem de serviço e diagnóstico são criadas pelo script `08_diagnosticos.sql`.
 
 ## Pré-requisitos
 
@@ -203,7 +285,7 @@ Antes de executar o projeto, instale:
 
 - [Node.js](https://nodejs.org/) 20 ou mais recente;
 - [MySQL Community Server](https://dev.mysql.com/downloads/mysql/) 8 ou mais recente;
-- [MySQL Workbench](https://dev.mysql.com/downloads/workbench/);
+- [MySQL Workbench](https://dev.mysql.com/downloads/workbench/) (opcional, se preferir não usar o terminal);
 - [Git](https://git-scm.com/);
 - um editor, como o [Visual Studio Code](https://code.visualstudio.com/).
 
@@ -222,19 +304,50 @@ Também é possível baixar o projeto como ZIP e abrir a pasta no VS Code.
 
 ### 2. Instale as dependências
 
+Na raiz do projeto (backend) e na pasta `frontend`:
+
 ```bash
 npm install
+cd frontend
+npm install
+cd ..
 ```
 
 ### 3. Prepare o banco de dados
 
-Abra o MySQL Workbench, conecte-se ao servidor local e execute os arquivos da pasta `database` nesta ordem:
+Execute os arquivos da pasta `database` como `root`, **nesta ordem** (a ordem importa):
 
-1. `01_schema.sql` — cria o banco e as tabelas;
-2. `02_dados_teste.sql` — adiciona dados fictícios;
-3. `03_usuario_aplicacao.sql` — cria o usuário local usado pela aplicação.
+1. `01_schema.sql`: cria o banco e as tabelas;
+2. `02_dados_teste.sql`: adiciona dados fictícios;
+3. `05_perfis.sql`: cria os perfis de acesso;
+4. `06_associacao_usuario_perfil.sql`: liga cada usuário a um perfil;
+5. `07_perfil_cliente.sql`: adiciona o perfil Cliente;
+6. `03_usuario_aplicacao.sql`: cria o usuário usado pela aplicação (precisa rodar **depois** do `06`, porque dá permissão em `usuario.id_perfil`);
+7. `08_diagnosticos.sql`: ordens de serviço e diagnósticos;
+8. `09_agendamentos.sql`: agendamentos e reagendamento.
 
 O arquivo `04_consultas_para_estudar.sql` é opcional e contém exemplos de consultas.
+
+Pelo terminal:
+
+```bash
+mysql -u root -p --default-character-set=utf8mb4 < database/01_schema.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/02_dados_teste.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/05_perfis.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/06_associacao_usuario_perfil.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/07_perfil_cliente.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/03_usuario_aplicacao.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/08_diagnosticos.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/09_agendamentos.sql
+```
+
+> No Windows, o `--default-character-set=utf8mb4` evita erros de codificação e acentos quebrados. Execute cada script **uma única vez**: alguns (como o `06`) falham se forem repetidos. Para recomeçar, apague o banco com `DROP DATABASE oficina_ds;` e refaça a sequência.
+
+Confira se os perfis foram criados:
+
+```bash
+mysql -u root -p oficina_ds -e "SELECT * FROM perfil;"
+```
 
 ### 4. Configure as variáveis de ambiente
 
@@ -252,7 +365,7 @@ No PowerShell:
 Copy-Item .env.example .env
 ```
 
-No Linux ou macOS:
+No Linux, macOS ou Git Bash:
 
 ```bash
 cp .env.example .env
@@ -262,10 +375,11 @@ Estrutura esperada:
 
 ```dotenv
 PORT=3000
+JWT_SECRET=troque-por-um-texto-secreto
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=oficina_app
-DB_PASSWORD=sua_senha_local
+DB_PASSWORD=TroqueEstaSenha123!
 DB_NAME=oficina_ds
 DB_CONNECTION_LIMIT=10
 ```
@@ -276,32 +390,84 @@ O valor de `DB_PASSWORD` deve ser igual ao definido em `database/03_usuario_apli
 
 ### 5. Inicie o sistema
 
-Modo de desenvolvimento:
+São dois terminais abertos ao mesmo tempo.
+
+**Terminal 1 — backend (porta 3000):**
 
 ```bash
 npm run dev
 ```
 
-Modo normal:
+Deve aparecer `✓ Conexão com o MySQL estabelecida.`. Para testar:
 
 ```bash
+curl http://localhost:3000/api/saude
+```
+
+**Terminal 2 — frontend (porta 5173):**
+
+```bash
+cd frontend
+npm run dev
+```
+
+Depois, acesse [http://localhost:5173](http://localhost:5173). O Vite encaminha as chamadas `/api` para o backend.
+
+Modo normal (um terminal só): gere o frontend e o Express passa a servi-lo na porta 3000.
+
+```bash
+cd frontend
+npm run build
+cd ..
 npm start
 ```
 
-Depois, acesse:
+Acesse [http://localhost:3000](http://localhost:3000).
 
-- página inicial: [http://localhost:3000](http://localhost:3000);
-- clientes: [http://localhost:3000/clientes.html](http://localhost:3000/clientes.html);
-- funcionários: [http://localhost:3000/funcionarios.html](http://localhost:3000/funcionarios.html).
+### Criar usuários de teste
+
+Os usuários de exemplo do script `06` têm senha fictícia e não servem para login. Cadastre usuários reais pela tela de cadastro (`/cadastro`) ou pela API:
+
+```bash
+curl -X POST http://localhost:3000/api/cadastro -H "Content-Type: application/json" -d '{"email":"admin@oficina.test","senha":"123456"}'
+```
+
+O usuário nasce como **Funcionario**. Para promover a Administrador (ou mudar para Cliente, perfil 3):
+
+```bash
+mysql -u root -p oficina_ds -e "UPDATE usuario SET id_perfil = 1 WHERE email = 'admin@oficina.test';"
+```
+
+Depois faça login de novo para o novo perfil valer.
 
 ## API
 
-| Método | Endpoint | Descrição |
-| --- | --- | --- |
-| `GET` | `/api/saude` | Verifica se o servidor está funcionando |
-| `GET` | `/api/clientes` | Lista os clientes com paginação |
-| `GET` | `/api/clientes/:id` | Consulta um cliente e seus veículos |
-| `GET` | `/api/funcionarios` | Pesquisa e filtra funcionários |
+Todas as rotas, exceto `saude`, `cadastro` e `login`, exigem o cabeçalho `Authorization: Bearer <token>`.
+
+| Método | Endpoint | Perfis | Descrição |
+| --- | --- | --- | --- |
+| `GET` | `/api/saude` | público | Verifica se o servidor está funcionando |
+| `POST` | `/api/cadastro` | público | Cria um usuário (nasce como Funcionario) |
+| `POST` | `/api/login` | público | Autentica e devolve o token |
+| `GET` | `/api/clientes` | Admin, Funcionario | Lista os clientes com paginação |
+| `GET` | `/api/clientes/:id` | Admin, Funcionario | Consulta um cliente e seus veículos |
+| `GET` | `/api/funcionarios` | Admin | Pesquisa e filtra funcionários |
+| `PATCH` | `/api/funcionarios/:id/cargo` | Admin | Altera o cargo de um funcionário |
+| `GET` | `/api/usuarios` | Admin | Lista os usuários |
+| `GET` | `/api/financeiro/resumo` | Admin | Resumo financeiro |
+| `GET` | `/api/diagnosticos` | Admin, Funcionario | Lista os diagnósticos |
+| `GET` | `/api/diagnosticos/opcoes` | Admin, Funcionario | Ordens e funcionários para o formulário |
+| `POST` | `/api/diagnosticos` | Admin, Funcionario | Registra um diagnóstico |
+| `PATCH` | `/api/diagnosticos/:id` | Admin, Funcionario | Edita um diagnóstico |
+| `DELETE` | `/api/diagnosticos/:id` | Admin, Funcionario | Exclui um diagnóstico |
+| `GET` | `/api/agendamentos` | Admin, Funcionario | Lista agendamentos |
+| `GET` | `/api/agendamentos/opcoes` | Admin, Funcionario | Veículos, profissionais e regras |
+| `GET` | `/api/agendamentos/horarios` | Admin, Funcionario | Horários livres para novo agendamento |
+| `GET` | `/api/agendamentos/:id/horarios` | Admin, Funcionario | Horários livres para reagendar |
+| `POST` | `/api/agendamentos` | Admin, Funcionario | Cria um agendamento |
+| `PATCH` | `/api/agendamentos/:id/reagendar` | Admin, Funcionario | Reagenda um serviço |
+
+As rotas de cargos (`/api/cargos`) também são restritas por perfil.
 
 ### Parâmetros da listagem de clientes
 
@@ -322,29 +488,41 @@ GET /api/funcionarios?busca=mecanico&status=ativos&pagina=1&limite=8
 | `pagina` | inteiro positivo | `1` |
 | `limite` | inteiro entre 1 e 50 | `8` |
 
+### Reagendar um serviço
+
+```http
+PATCH /api/agendamentos/1/reagendar
+Content-Type: application/json
+
+{ "data": "2026-10-22", "hora": "14:00" }
+```
+
+Erros de regra: `422` (status não permitido, antecedência insuficiente, fora do expediente) e `409` (conflito de horário). Detalhes em [`docs/REAGENDAMENTO.md`](docs/REAGENDAMENTO.md).
+
 ## Testes
 
-Execute os testes automatizados:
+Execute os testes automatizados do backend:
 
 ```bash
 npm test
 ```
 
-Verifique também a sintaxe dos principais arquivos JavaScript:
+Verifique os tipos do frontend:
 
 ```bash
-npm run check
+cd frontend
+npx tsc -b
 ```
 
 O projeto possui testes para:
 
 - servidor HTTP e rota de saúde;
 - rotas inexistentes;
-- entrega dos arquivos do frontend;
-- paginação;
-- validação de identificadores;
-- filtros de funcionários;
-- cálculo do total de páginas.
+- paginação e validação de identificadores;
+- filtros de funcionários e cálculo do total de páginas;
+- perfis e permissões (login, 401 e 403);
+- diagnósticos (validação e acesso ao banco);
+- regras de agendamento e reagendamento (status, antecedência, expediente e conflitos).
 
 ## Integração da equipe
 
@@ -366,23 +544,27 @@ Mais detalhes estão em [`docs/INTEGRACAO_EQUIPE.md`](docs/INTEGRACAO_EQUIPE.md)
 - [x] visualizar detalhes e veículos do cliente;
 - [x] pesquisar funcionários;
 - [x] filtrar funcionários por status;
-- [ ] cadastro e login de usuários;
-- [ ] controle de perfis e permissões;
-- [ ] administração de funcionários;
+- [x] cadastro e login de usuários;
+- [x] controle de perfis e permissões;
+- [x] alteração de cargo de funcionários;
+- [x] registrar diagnósticos;
+- [x] agendar e reagendar serviços;
+- [ ] portal do cliente (consultar e reagendar os próprios serviços);
+- [ ] cancelamento de agendamentos e controle de urgência;
 - [ ] cadastro de clientes e veículos;
-- [ ] agendamentos e controle de urgência;
 - [ ] ordens de serviço e histórico de status;
-- [ ] diagnósticos e registro de danos;
 - [ ] orçamentos e aprovação do cliente;
 - [ ] controle e solicitação de peças;
-- [ ] controle financeiro;
+- [ ] controle financeiro completo;
 - [ ] avaliações, presença e relatórios.
 
 ## Boas práticas adotadas
 
-- senhas e configurações locais não ficam no repositório;
+- senhas são guardadas criptografadas e as configurações locais não ficam no repositório;
 - consultas utilizam parâmetros em vez de concatenar entradas do usuário;
-- o usuário MySQL da aplicação possui apenas permissão de leitura neste módulo;
+- o usuário MySQL da aplicação recebe somente as permissões mínimas de que cada módulo precisa;
+- as permissões são conferidas no backend, e não apenas escondidas no menu;
+- o reagendamento usa transação, para duas pessoas não ocuparem o mesmo horário;
 - dados de demonstração são fictícios e utilizam o domínio reservado `.test`;
 - erros internos não são expostos diretamente ao navegador;
 - frontend e backend seguem contratos documentados.
