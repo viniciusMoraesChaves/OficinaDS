@@ -17,6 +17,7 @@ const linksPorPerfil: Record<Perfil, LinkItem[]> = {
     { to: '/', label: 'Início', icon: '⌂', end: true },
     { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
     { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕', end: false },
+    { to: '/agendamentos', label: 'Agendamentos', icon: '◷', end: false },
     { to: '/funcionarios', label: 'Funcionários', icon: '⚙', end: false },
     { to: '/usuarios', label: 'Usuários', icon: '☺', end: false },
     { to: '/financeiro', label: 'Financeiro', icon: '$', end: false },
@@ -25,6 +26,7 @@ const linksPorPerfil: Record<Perfil, LinkItem[]> = {
     { to: '/', label: 'Início', icon: '⌂', end: true },
     { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
     { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕', end: false },
+    { to: '/agendamentos', label: 'Agendamentos', icon: '◷', end: false },
   ],
   [PERFIS.CLIENTE]: [{ to: '/', label: 'Início', icon: '⌂', end: true }],
 };

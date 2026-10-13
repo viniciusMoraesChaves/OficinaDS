@@ -12,7 +12,7 @@ function errorHandler(error, req, res, next) {
 
   if (error.statusCode) {
     return res.status(error.statusCode).json({
-      erro: error.name === 'ValidationError' ? 'PARAMETRO_INVALIDO' : 'ERRO',
+      erro: error.codigo || (error.name === 'ValidationError' ? 'PARAMETRO_INVALIDO' : 'ERRO'),
       mensagem: error.message
     });
   }
