@@ -13,6 +13,7 @@ import MeusOrcamentos from './pages/MeusOrcamentos';
 import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
 import Diagnosticos from './pages/Diagnosticos';
+import Agendamentos from './pages/Agendamentos';
 
 export default function App() {
   return (
@@ -77,6 +78,14 @@ export default function App() {
             element={
               <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
                 <Diagnosticos />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/agendamentos"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Agendamentos />
               </RequireAuth>
             }
           />

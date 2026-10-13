@@ -1106,3 +1106,143 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Agendamentos e reagendamento ---------- */
+
+.status-badge.is-scheduled {
+  color: var(--blue);
+  background: #e8f1fb;
+}
+
+.status-badge.is-progress {
+  color: #865608;
+  background: #fff0cf;
+}
+
+.status-badge.is-done {
+  color: #5d6059;
+  background: #eeeeea;
+}
+
+.schedule-table {
+  min-width: 960px;
+}
+
+.schedule-rules {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.schedule-rules h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.schedule-rules ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.schedule-rules strong {
+  color: var(--text);
+}
+
+.schedule-form {
+  display: grid;
+  gap: 18px;
+}
+
+.schedule-current {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.schedule-current__when {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.schedule-current__when strong {
+  color: var(--text);
+}
+
+.field__label {
+  color: #4f514c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 8px;
+}
+
+.slot {
+  height: 40px;
+  border: 1px solid #dcded8;
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.slot:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.slot:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.slot.is-selected {
+  border-color: var(--accent-dark);
+  color: #20211f;
+  background: var(--accent);
+}
+
+.slot:disabled {
+  border-color: var(--border);
+  color: #a2a49d;
+  background: var(--surface-muted);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.slot-message {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 9px;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  font-size: 13px;
+}
+
+.slot-message--error {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.slot-hint {
+  text-align: left;
+}
