@@ -4,6 +4,7 @@ const {
   parsePagination,
   parseId,
   parseEmployeeFilters,
+  parseClientFilters,
   buildPagination
 } = require('../src/utils/queryParams');
 
@@ -43,6 +44,15 @@ test('parseEmployeeFilters limpa e valida filtros', () => {
     () => parseEmployeeFilters({ status: 'demitidos' }),
     /todos, ativos ou inativos/
   );
+});
+
+test('parseClientFilters limpa e limita a busca', () => {
+  assert.deepEqual(
+    parseClientFilters({ busca: '  Maria da Silva  ' }),
+    { busca: 'Maria da Silva' }
+  );
+  assert.deepEqual(parseClientFilters({}), { busca: '' });
+  assert.equal(parseClientFilters({ busca: 'a'.repeat(150) }).busca.length, 100);
 });
 
 test('buildPagination calcula a quantidade de páginas', () => {
