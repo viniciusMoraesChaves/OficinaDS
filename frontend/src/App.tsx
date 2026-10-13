@@ -12,6 +12,8 @@ import Atendimentos from './pages/Atendimentos';
 import MeusOrcamentos from './pages/MeusOrcamentos';
 import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
+import Veiculos from './pages/Veiculos';
+import VeiculoHistorico from './pages/VeiculoHistorico';
 import Diagnosticos from './pages/Diagnosticos';
 import Agendamentos from './pages/Agendamentos';
 
@@ -90,6 +92,22 @@ export default function App() {
             }
           />
 
+          <Route
+            path="/veiculos"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Veiculos />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/veiculos/:id/historico"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <VeiculoHistorico />
+              </RequireAuth>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

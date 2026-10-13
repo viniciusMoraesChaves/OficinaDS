@@ -7,6 +7,8 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/authRoutes');
 
 const clientesRoutes = require('./routes/clientesRoutes');
+const historicoRoutes = require('./routes/historicoRoutes');
+const veiculosRoutes = require('./routes/veiculosRoutes');
 const funcionariosRoutes = require('./routes/funcionariosRoutes');
 const cargosRoutes = require('./routes/cargosRoutes');
 const usuariosRoutes = require('./routes/usuariosRoutes');
@@ -41,7 +43,10 @@ app.use('/api/atendimentos', atendimentosRoutes);
 app.use('/api/orcamentos', orcamentosRoutes);
 app.use('/api/diagnosticos', diagnosticosRoutes);
 app.use('/api/agendamentos', agendamentosRoutes);
+app.use('/api/veiculos', veiculosRoutes);
+app.use('/api/veiculos', historicoRoutes);
 app.use('/api', notFoundApi);
+
 
 // Front-end React (build do Vite)
 if (fs.existsSync(distDirectory)) {

@@ -16,6 +16,7 @@ const linksPorPerfil: Record<Perfil, LinkItem[]> = {
   [PERFIS.ADMINISTRADOR]: [
     { to: '/', label: 'Início', icon: '⌂', end: true },
     { to: '/atendimentos', label: 'Atendimentos', icon: '🔧', end: false },
+    { to: '/veiculos', label: 'Veículos', icon: '🚗', end: false },
     { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
     { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕', end: false },
     { to: '/agendamentos', label: 'Agendamentos', icon: '◷', end: false },
@@ -26,6 +27,7 @@ const linksPorPerfil: Record<Perfil, LinkItem[]> = {
   [PERFIS.FUNCIONARIO]: [
     { to: '/', label: 'Início', icon: '⌂', end: true },
     { to: '/atendimentos', label: 'Atendimentos', icon: '🔧', end: false },
+    { to: '/veiculos', label: 'Veículos', icon: '🚗', end: false },
     { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
     { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕', end: false },
     { to: '/agendamentos', label: 'Agendamentos', icon: '◷', end: false },
