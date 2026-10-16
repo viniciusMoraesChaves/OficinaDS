@@ -70,14 +70,23 @@ async function buscarAtendimentoPorId(idAtendimento) {
   return rows[0] || null;
 }
 
+// "Remover" um atendimento o encerra: se o cliente aceitou um orçamento, o
+// serviço foi realizado (concluído); caso contrário, o atendimento é cancelado.
 async function cancelarAtendimento(idAtendimento) {
-  const [resultado] = await pool.execute(
-    `UPDATE atendimento SET status = 'cancelado' WHERE id_atendimento = ? AND status = 'aberto'`,
+  const [aceitos] = await pool.execute(
+    `SELECT 1 FROM orcamento WHERE id_atendimento = ? AND status = 'aceito' LIMIT 1`,
     [idAtendimento]
   );
+  const realizado = aceitos.length > 0;
 
-  if (resultado.affectedRows > 0) {
-    // Atendimento encerrado: a ordem de serviço deixa de aceitar diagnósticos.
+  const [resultado] = await pool.execute(
+    `UPDATE atendimento SET status = ? WHERE id_atendimento = ? AND status = 'aberto'`,
+    [realizado ? 'concluido' : 'cancelado', idAtendimento]
+  );
+
+  if (resultado.affectedRows > 0 && !realizado) {
+    // Só o atendimento cancelado deixa de aceitar diagnósticos; o realizado
+    // continua disponível para registrar o diagnóstico.
     await pool.execute(
       `UPDATE ordem_servico
        SET status = 'Encerrada', data_fechamento = NOW()

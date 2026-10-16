@@ -1,4 +1,9 @@
-import type { FiltroPeriodo, HistoricoVeiculoResposta } from '../types/historico';
+import type {
+  AtendimentoHistorico,
+  FiltroPeriodo,
+  HistoricoVeiculoResposta,
+  VeiculoResumo,
+} from '../types/historico';
 import { getToken, EVENTO_SESSAO_EXPIRADA } from './api';
 
 // Mesma origem por padrão (Express servindo o build, ou proxy do Vite para /api).
@@ -13,17 +18,34 @@ export class HistoricoError extends Error {
   }
 }
 
-async function request(url: string, signal?: AbortSignal): Promise<Response> {
+async function buscar<T>(caminho: string, mensagemPadrao: string, signal?: AbortSignal): Promise<T> {
   const token = getToken();
-  return fetch(url, {
+  const res = await fetch(`${API_URL}${caminho}`, {
     signal,
     headers: {
       Accept: 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
+
+  if (!res.ok) {
+    if (res.status === 401 && token) window.dispatchEvent(new Event(EVENTO_SESSAO_EXPIRADA));
+
+    let mensagem = mensagemPadrao;
+    try {
+      const corpo = (await res.json()) as { mensagem?: string; erro?: string };
+      mensagem = corpo.mensagem ?? corpo.erro ?? mensagem;
+    } catch {
+      /* corpo sem JSON: mantém a mensagem padrão */
+    }
+    throw new HistoricoError(mensagem, res.status);
+  }
+
+  return (await res.json()) as T;
 }
 
+// A API devolve o veículo e a lista de atendimentos em rotas separadas;
+// a tela recebe os dois juntos.
 export async function getHistoricoVeiculo(
   idVeiculo: number,
   filtro: FiltroPeriodo = {},
@@ -34,20 +56,14 @@ export async function getHistoricoVeiculo(
   if (filtro.fim) params.set('fim', filtro.fim);
   const qs = params.toString();
 
-  const res = await request(`${API_URL}/api/veiculos/${idVeiculo}/historico${qs ? `?${qs}` : ''}`, signal);
+  const [veiculo, atendimentos] = await Promise.all([
+    buscar<VeiculoResumo>(`/api/veiculos/${idVeiculo}`, 'Não foi possível carregar o veículo.', signal),
+    buscar<AtendimentoHistorico[]>(
+      `/api/veiculos/${idVeiculo}/historico${qs ? `?${qs}` : ''}`,
+      'Não foi possível carregar o histórico do veículo.',
+      signal,
+    ),
+  ]);
 
-  if (!res.ok) {
-    if (res.status === 401 && getToken()) window.dispatchEvent(new Event(EVENTO_SESSAO_EXPIRADA));
-
-    let mensagem = 'Não foi possível carregar o histórico do veículo.';
-    try {
-      const corpo = (await res.json()) as { mensagem?: string; erro?: string };
-      mensagem = corpo.mensagem ?? corpo.erro ?? mensagem;
-    } catch {
-      /* corpo sem JSON: mantém a mensagem padrão */
-    }
-    throw new HistoricoError(mensagem, res.status);
-  }
-
-  return (await res.json()) as HistoricoVeiculoResposta;
+  return { veiculo, atendimentos };
 }

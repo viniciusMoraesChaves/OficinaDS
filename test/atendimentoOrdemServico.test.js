@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const databasePath = require.resolve('../src/config/database');
 const calls = [];
+let orcamentoAceito = false;
 
 const connection = {
   async beginTransaction() { calls.push('begin'); },
@@ -24,6 +25,7 @@ require.cache[databasePath] = {
       async getConnection() { return connection; },
       async execute(sql, params = []) {
         calls.push({ sql, params });
+        if (sql.trim().startsWith('SELECT')) return [orcamentoAceito ? [{ 1: 1 }] : []];
         return [{ affectedRows: 1 }];
       }
     }
@@ -50,13 +52,26 @@ test('criarAtendimento também cria a ordem de serviço, na mesma transação', 
   assert.equal(calls[4], 'release');
 });
 
-test('cancelarAtendimento encerra a ordem de serviço ligada a ele', async () => {
+test('cancelarAtendimento cancela e encerra a ordem quando não há orçamento aceito', async () => {
   calls.length = 0;
+  orcamentoAceito = false;
 
-  const cancelado = await orcamentosRepository.cancelarAtendimento(42);
+  const resultado = await orcamentosRepository.cancelarAtendimento(42);
 
-  assert.equal(cancelado, true);
-  assert.match(calls[0].sql, /UPDATE atendimento SET status = 'cancelado'/);
-  assert.match(calls[1].sql, /UPDATE ordem_servico/);
-  assert.deepEqual(calls[1].params, [42]);
+  assert.equal(resultado, true);
+  assert.match(calls[0].sql, /SELECT 1 FROM orcamento/);
+  assert.deepEqual(calls[1].params, ['cancelado', 42]);
+  assert.match(calls[2].sql, /UPDATE ordem_servico/);
+  assert.deepEqual(calls[2].params, [42]);
+});
+
+test('cancelarAtendimento conclui sem encerrar a ordem quando o orçamento foi aceito', async () => {
+  calls.length = 0;
+  orcamentoAceito = true;
+
+  const resultado = await orcamentosRepository.cancelarAtendimento(42);
+
+  assert.equal(resultado, true);
+  assert.deepEqual(calls[1].params, ['concluido', 42]);
+  assert.equal(calls.length, 2);
 });
