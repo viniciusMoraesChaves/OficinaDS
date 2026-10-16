@@ -39,7 +39,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -368,6 +369,17 @@ a {
   background: transparent;
 }
 
+.button--danger {
+  color: var(--danger);
+  border-color: #efc7c3;
+  background: var(--danger-soft);
+}
+
+.button--danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: #ffe5e2;
+}
+
 .button--small {
   min-height: 34px;
   padding: 0 12px;
@@ -387,6 +399,10 @@ a {
   box-shadow: var(--shadow);
 }
 
+.search-panel--clients {
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+}
+
 .field {
   display: grid;
   gap: 7px;
@@ -399,7 +415,8 @@ a {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   height: 43px;
   padding: 0 13px;
@@ -411,10 +428,23 @@ a {
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
+.field textarea {
+  min-height: 140px;
+  padding: 12px 13px;
+  resize: vertical;
+}
+
 .field input:focus,
-.field select:focus {
+.field select:focus,
+.field textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.field__hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: right;
 }
 
 .field input::placeholder {
@@ -572,6 +602,72 @@ a {
 .feedback--loading {
   color: #806018;
   background: var(--accent-soft);
+}
+
+.feedback--success {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.diagnosis-table {
+  min-width: 1080px;
+}
+
+.diagnosis-table td:nth-child(3) {
+  width: 38%;
+}
+
+.order-code,
+.table-primary,
+.table-secondary {
+  display: block;
+}
+
+.order-code {
+  width: fit-content;
+  margin-bottom: 6px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  color: #855504;
+  background: var(--accent-soft);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.table-primary {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.table-secondary {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.diagnosis-description {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.diagnosis-form {
+  display: grid;
+  gap: 18px;
+}
+
+.table-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .pagination {
@@ -1009,4 +1105,144 @@ a {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ---------- Agendamentos e reagendamento ---------- */
+
+.status-badge.is-scheduled {
+  color: var(--blue);
+  background: #e8f1fb;
+}
+
+.status-badge.is-progress {
+  color: #865608;
+  background: #fff0cf;
+}
+
+.status-badge.is-done {
+  color: #5d6059;
+  background: #eeeeea;
+}
+
+.schedule-table {
+  min-width: 960px;
+}
+
+.schedule-rules {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.schedule-rules h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.schedule-rules ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.schedule-rules strong {
+  color: var(--text);
+}
+
+.schedule-form {
+  display: grid;
+  gap: 18px;
+}
+
+.schedule-current {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.schedule-current__when {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.schedule-current__when strong {
+  color: var(--text);
+}
+
+.field__label {
+  color: #4f514c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 8px;
+}
+
+.slot {
+  height: 40px;
+  border: 1px solid #dcded8;
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.slot:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.slot:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.slot.is-selected {
+  border-color: var(--accent-dark);
+  color: #20211f;
+  background: var(--accent);
+}
+
+.slot:disabled {
+  border-color: var(--border);
+  color: #a2a49d;
+  background: var(--surface-muted);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.slot-message {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 9px;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  font-size: 13px;
+}
+
+.slot-message--error {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.slot-hint {
+  text-align: left;
 }

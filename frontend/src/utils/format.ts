@@ -16,3 +16,15 @@ export function formatDate(value?: string | null): string {
   const [year, month, day] = String(value).slice(0, 10).split('-').map(Number);
   return new Intl.DateTimeFormat('pt-BR').format(new Date(year, month - 1, day));
 }
+
+export function formatDateTime(value?: string | null): string {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(
+    new Date(value)
+  );
+}
+
+export function formatCurrency(value?: number | string | null): string {
+  const numero = Number(value ?? 0);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numero);
+}

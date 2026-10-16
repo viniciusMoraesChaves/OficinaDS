@@ -1,28 +1,38 @@
+// sessionStorage: cada aba tem a sua própria sessão (admin, funcionário e cliente
+// podem ficar abertos ao mesmo tempo sem sobrescrever um ao outro).
 const CHAVE_TOKEN = 'oficinaos:token';
 const CHAVE_PERFIL = 'oficinaos:perfil';
 
+export const EVENTO_SESSAO_EXPIRADA = 'oficinaos:sessao-expirada';
+const ERROS_DE_SESSAO = [
+  'NAO_AUTENTICADO',
+  'TOKEN_INVALIDO',
+  'USUARIO_INVALIDO',
+  'USUARIO_NAO_IDENTIFICADO'
+];
+
 export function getToken(): string | null {
-  return localStorage.getItem(CHAVE_TOKEN);
+  return sessionStorage.getItem(CHAVE_TOKEN);
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(CHAVE_TOKEN, token);
+  sessionStorage.setItem(CHAVE_TOKEN, token);
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(CHAVE_TOKEN);
+  sessionStorage.removeItem(CHAVE_TOKEN);
 }
 
 export function getPerfil(): string | null {
-  return localStorage.getItem(CHAVE_PERFIL);
+  return sessionStorage.getItem(CHAVE_PERFIL);
 }
 
 export function setPerfil(perfil: string): void {
-  localStorage.setItem(CHAVE_PERFIL, perfil);
+  sessionStorage.setItem(CHAVE_PERFIL, perfil);
 }
 
 export function clearPerfil(): void {
-  localStorage.removeItem(CHAVE_PERFIL);
+  sessionStorage.removeItem(CHAVE_PERFIL);
 }
 
 async function request<T>(
@@ -50,7 +60,12 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    const mensagem = (body as { mensagem?: string } | null)?.mensagem;
+    const { mensagem, erro } = (body as { mensagem?: string; erro?: string } | null) ?? {};
+
+    // Token vencido/inválido: avisa o AuthContext para encerrar a sessão.
+    if (response.status === 401 && token && erro && ERROS_DE_SESSAO.includes(erro)) {
+      window.dispatchEvent(new Event(EVENTO_SESSAO_EXPIRADA));
+    }
 
     throw new Error(
       mensagem || `Falha na requisição (${response.status}).`

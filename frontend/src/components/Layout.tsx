@@ -15,22 +15,33 @@ type LinkItem = { to: string; label: string; icon: string; end: boolean };
 const linksPorPerfil: Record<Perfil, LinkItem[]> = {
   [PERFIS.ADMINISTRADOR]: [
     { to: '/', label: 'Início', icon: '⌂', end: true },
+    { to: '/atendimentos', label: 'Atendimentos', icon: '🔧', end: false },
+    { to: '/veiculos', label: 'Veículos', icon: '🚗', end: false },
     { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
+    { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕', end: false },
+    { to: '/agendamentos', label: 'Agendamentos', icon: '◷', end: false },
     { to: '/funcionarios', label: 'Funcionários', icon: '⚙', end: false },
     { to: '/usuarios', label: 'Usuários', icon: '☺', end: false },
     { to: '/financeiro', label: 'Financeiro', icon: '$', end: false },
   ],
   [PERFIS.FUNCIONARIO]: [
     { to: '/', label: 'Início', icon: '⌂', end: true },
+    { to: '/atendimentos', label: 'Atendimentos', icon: '🔧', end: false },
+    { to: '/veiculos', label: 'Veículos', icon: '🚗', end: false },
     { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
+    { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕', end: false },
+    { to: '/agendamentos', label: 'Agendamentos', icon: '◷', end: false },
   ],
-  [PERFIS.CLIENTE]: [{ to: '/', label: 'Início', icon: '⌂', end: true }],
+  [PERFIS.CLIENTE]: [
+    { to: '/', label: 'Início', icon: '⌂', end: true },
+    { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: '🧾', end: false },
+  ],
 };
 
 export function Layout({ title, subtitle, documentTitle, children }: LayoutProps) {
   const [open, setOpen] = useState(false);
   const { perfil, logout } = useAuth();
-  const links = linksPorPerfil[perfil ?? PERFIS.FUNCIONARIO];
+  const links = perfil ? linksPorPerfil[perfil] : [];
 
   useEffect(() => {
     document.title = documentTitle;

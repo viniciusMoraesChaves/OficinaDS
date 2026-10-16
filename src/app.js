@@ -5,12 +5,19 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 const authRoutes = require('./routes/authRoutes');
-const { exigirAutenticacao } = require('./middlewares/authMiddleware');
 
 const clientesRoutes = require('./routes/clientesRoutes');
+const historicoRoutes = require('./routes/historicoRoutes');
+const veiculosRoutes = require('./routes/veiculosRoutes');
 const funcionariosRoutes = require('./routes/funcionariosRoutes');
 const cargosRoutes = require('./routes/cargosRoutes');
+const usuariosRoutes = require('./routes/usuariosRoutes');
+const financeiroRoutes = require('./routes/financeiroRoutes');
+const atendimentosRoutes = require('./routes/atendimentosRoutes');
+const orcamentosRoutes = require('./routes/orcamentosRoutes');
+const diagnosticosRoutes = require('./routes/diagnosticosRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
+const agendamentosRoutes = require('./routes/agendamentosRoutes');
 
 const app = express();
 const distDirectory = path.resolve(__dirname, '../frontend/dist');
@@ -23,14 +30,23 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false }));
 
 app.get('/api/saude', (req, res) => {
-  res.json({ status: 'ok', aplicacao: 'OficinaOS' });
+  res.json({ status: 'ok', aplicacao: 'OficinaDS' });
 });
 
 app.use('/api', authRoutes);
-app.use('/api/clientes', exigirAutenticacao, clientesRoutes);
+app.use('/api/clientes', clientesRoutes);
 app.use('/api/funcionarios', funcionariosRoutes);
 app.use('/api/cargos', cargosRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/financeiro', financeiroRoutes);
+app.use('/api/atendimentos', atendimentosRoutes);
+app.use('/api/orcamentos', orcamentosRoutes);
+app.use('/api/diagnosticos', diagnosticosRoutes);
+app.use('/api/agendamentos', agendamentosRoutes);
+app.use('/api/veiculos', veiculosRoutes);
+app.use('/api/veiculos', historicoRoutes);
 app.use('/api', notFoundApi);
+
 
 // Front-end React (build do Vite)
 if (fs.existsSync(distDirectory)) {

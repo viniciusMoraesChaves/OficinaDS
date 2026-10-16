@@ -136,3 +136,29 @@ test('permitirPerfis responde 401 quando não há usuário logado', () => {
   assert.equal(res.statusCode, 401);
   assert.equal(res.corpo.erro, 'USUARIO_NAO_IDENTIFICADO');
 });
+
+test('permitirPerfis libera o Administrador mesmo em rota exclusiva de Cliente', () => {
+  const req = { usuarioLogado: { perfil: 'Administrador' } };
+  const res = criarRespostaFake();
+  let chamouNext = false;
+
+  permitirPerfis('Cliente')(req, res, () => {
+    chamouNext = true;
+  });
+
+  assert.equal(chamouNext, true);
+  assert.equal(res.statusCode, undefined);
+});
+
+test('permitirPerfis continua bloqueando Cliente em rota de equipe', () => {
+  const req = { usuarioLogado: { perfil: 'Cliente' } };
+  const res = criarRespostaFake();
+  let chamouNext = false;
+
+  permitirPerfis('Administrador', 'Funcionario')(req, res, () => {
+    chamouNext = true;
+  });
+
+  assert.equal(chamouNext, false);
+  assert.equal(res.statusCode, 403);
+});

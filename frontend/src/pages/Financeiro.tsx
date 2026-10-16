@@ -9,7 +9,7 @@ export default function Financeiro() {
     >
       <section className="intro">
         <div>
-          <span className="story-label">Em construção</span>
+          <span className="story-label">Em breve</span>
           <h2>Módulo financeiro</h2>
           <p>
             As funcionalidades financeiras ainda não foram implementadas.

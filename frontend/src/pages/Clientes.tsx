@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Layout } from '../components/Layout';
 import { StatusBadge } from '../components/StatusBadge';
 import { Feedback } from '../components/Feedback';
@@ -11,20 +11,28 @@ import type { ClienteResumo, ListaClientesResponse, Paginacao } from '../types/c
 const LIMITE = 8;
 
 export default function Clientes() {
+  const [inputBusca, setInputBusca] = useState('');
+  const [busca, setBusca] = useState('');
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [paginacao, setPaginacao] = useState<Paginacao | null>(null);
   const [pagina, setPagina] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const loadClientes = useCallback(async () => {
     setLoading(true);
     setError('');
 
     try {
+      const params = new URLSearchParams({
+        pagina: String(pagina),
+        limite: String(LIMITE),
+        busca
+      });
       const result = await apiFetch<ListaClientesResponse>(
-        `/api/clientes?pagina=${pagina}&limite=${LIMITE}`
+        `/api/clientes?${params}`
       );
       setClientes(result.dados);
       setPaginacao(result.paginacao);
@@ -35,11 +43,32 @@ export default function Clientes() {
     } finally {
       setLoading(false);
     }
-  }, [pagina]);
+  }, [busca, pagina]);
 
   useEffect(() => {
     loadClientes();
   }, [loadClientes]);
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setBusca(inputBusca.trim());
+    setPagina(1);
+  }
+
+  function handleClear() {
+    setInputBusca('');
+    setBusca('');
+    setPagina(1);
+    searchRef.current?.focus();
+  }
+
+  function resumo(total: number) {
+    if (busca) {
+      return `${total} resultado${total === 1 ? '' : 's'} para “${busca}”`;
+    }
+
+    return `${total} cliente${total === 1 ? '' : 's'} no total`;
+  }
 
   return (
     <Layout
@@ -49,10 +78,9 @@ export default function Clientes() {
     >
       <section className="intro">
         <div>
-          <span className="story-label">DM-67</span>
           <h2>Consultar clientes</h2>
           <p>
-            Consulte todos os clientes cadastrados e abra os detalhes para
+            Pesquise por nome, CPF, e-mail ou telefone e abra os detalhes para
             visualizar endereço e veículos vinculados.
           </p>
         </div>
@@ -66,11 +94,41 @@ export default function Clientes() {
         </button>
       </section>
 
+      <form
+        className="search-panel search-panel--clients"
+        role="search"
+        onSubmit={handleSubmit}
+      >
+        <div className="field">
+          <label htmlFor="clientes-search">O que você procura?</label>
+          <input
+            ref={searchRef}
+            id="clientes-search"
+            name="busca"
+            type="search"
+            maxLength={100}
+            placeholder="Ex.: Maria, CPF, telefone ou e-mail"
+            autoComplete="off"
+            value={inputBusca}
+            onChange={(event) => setInputBusca(event.target.value)}
+          />
+        </div>
+
+        <button className="button button--primary" type="submit" disabled={loading}>
+          Pesquisar
+        </button>
+        <button className="button button--ghost" type="button" onClick={handleClear}>
+          Limpar
+        </button>
+      </form>
+
       <section className="panel" aria-labelledby="clientes-list-title">
         <header className="panel__header">
           <div>
-            <h3 id="clientes-list-title">Clientes cadastrados</h3>
-            <p>Ordenados alfabeticamente pelo nome</p>
+            <h3 id="clientes-list-title">Resultado da pesquisa</h3>
+            <p className="search-summary">
+              {paginacao ? resumo(paginacao.total) : ''}
+            </p>
           </div>
         </header>
 
@@ -93,7 +151,9 @@ export default function Clientes() {
               {!loading && !error && clientes.length === 0 && (
                 <tr>
                   <td className="empty-cell" colSpan={6}>
-                    Nenhum cliente foi cadastrado ainda.
+                    {busca
+                      ? 'Nenhum cliente corresponde à pesquisa.'
+                      : 'Nenhum cliente foi cadastrado ainda.'}
                   </td>
                 </tr>
               )}

@@ -62,6 +62,12 @@ function parseEmployeeFilters(query) {
   return { busca, status };
 }
 
+function parseClientFilters(query) {
+  const busca = String(query.busca || '').trim().slice(0, 100);
+
+  return { busca };
+}
+
 function buildPagination(pagina, limite, total) {
   return {
     pagina,
@@ -76,5 +82,6 @@ module.exports = {
   parsePagination,
   parseId,
   parseEmployeeFilters,
+  parseClientFilters,
   buildPagination
 };

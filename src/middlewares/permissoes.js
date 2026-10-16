@@ -1,5 +1,6 @@
 const { exigirAutenticacao } = require('./authMiddleware');
 const usuariosRepository = require('../repositories/usuariosRepository');
+const { PERFIS } = require('../utils/perfis');
 
 // Roda depois de exigirAutenticacao. Usa o id_usuario que veio dentro do
 // token (JWT) para buscar o usuário completo, já com o nome do perfil.
@@ -38,7 +39,8 @@ function permitirPerfis(...perfisPermitidos) {
       });
     }
 
-    if (!perfisPermitidos.includes(usuario.perfil)) {
+    // O Administrador tem acesso a todas as funcionalidades.
+    if (usuario.perfil !== PERFIS.ADMINISTRADOR && !perfisPermitidos.includes(usuario.perfil)) {
       return res.status(403).json({
         erro: 'PERMISSAO_NEGADA',
         mensagem: 'Este perfil não tem acesso a esta funcionalidade.'

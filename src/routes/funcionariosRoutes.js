@@ -11,6 +11,12 @@ router.get(
   funcionariosController.search
 );
 
+router.post(
+  '/',
+  protegerRota(PERFIS.ADMINISTRADOR),
+  funcionariosController.criar
+);
+
 router.patch(
   '/:id/cargo',
   protegerRota(PERFIS.ADMINISTRADOR),

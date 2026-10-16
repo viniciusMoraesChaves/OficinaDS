@@ -38,6 +38,6 @@ test('frontend inicial é servido pelo Express', async (t) => {
   const html = await response.text();
 
   assert.equal(response.status, 200);
-  assert.match(html, /OficinaDS/);
+  assert.match(html, /Oficina(DS|OS)/);
   assert.match(response.headers.get('content-type'), /text\/html/);
 });

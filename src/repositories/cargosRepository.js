@@ -41,4 +41,17 @@ async function create(nome, descricao) {
   };
 }
 
-module.exports = { findAll, findById, create };
+// Cargo atribuído a quem se cadastra sozinho: nunca "Gerente" (que vira Administrador).
+async function findPadraoCadastro() {
+  const [rows] = await pool.execute(
+    `SELECT id_cargo AS id, nome, descricao
+     FROM cargo
+     WHERE nome <> 'Gerente'
+     ORDER BY (nome = 'Atendente') DESC, id_cargo ASC
+     LIMIT 1`
+  );
+
+  return rows[0] || null;
+}
+
+module.exports = { findAll, findById, create, findPadraoCadastro };

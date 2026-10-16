@@ -2,15 +2,21 @@ const clientesRepository = require('../repositories/clientesRepository');
 const {
   parsePagination,
   parseId,
+  parseClientFilters,
   buildPagination
 } = require('../utils/queryParams');
 
 async function list(req, res) {
   const pagination = parsePagination(req.query);
-  const result = await clientesRepository.findAll(pagination);
+  const filters = parseClientFilters(req.query);
+  const result = await clientesRepository.findAll({
+    ...pagination,
+    ...filters
+  });
 
   res.json({
     dados: result.rows,
+    filtros: filters,
     paginacao: buildPagination(
       pagination.pagina,
       pagination.limite,
@@ -33,4 +39,9 @@ async function detail(req, res) {
   return res.json({ dados: client });
 }
 
-module.exports = { list, detail };
+async function opcoes(req, res) {
+  const clientes = await clientesRepository.listarOpcoes();
+  res.json({ dados: clientes });
+}
+
+module.exports = { list, detail, opcoes };
