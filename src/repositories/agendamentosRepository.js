@@ -40,6 +40,19 @@ async function findAll() {
   return rows;
 }
 
+// Agendamentos de um cliente (visão do próprio cliente). O id do cliente vem
+// sempre do usuário logado no controller, nunca de um parâmetro da requisição.
+async function findByCliente(clienteId) {
+  const [rows] = await pool.execute(
+    `${SELECT_AGENDAMENTO}
+     WHERE ag.id_cliente = ?
+     ORDER BY (ag.status IN (?, ?)) ASC, ag.data_hora ASC, ag.id_agendamento ASC`,
+    [clienteId, STATUS.CONCLUIDO, STATUS.CANCELADO]
+  );
+
+  return rows;
+}
+
 async function findById(id) {
   const [rows] = await pool.execute(
     `${SELECT_AGENDAMENTO}
@@ -223,6 +236,7 @@ async function reagendarSeLivre(id, novoInicioSql, validar) {
 
 module.exports = {
   findAll,
+  findByCliente,
   findById,
   findOptions,
   findVehicleById,

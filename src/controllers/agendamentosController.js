@@ -1,4 +1,5 @@
 const agendamentosRepository = require('../repositories/agendamentosRepository');
+const clientesRepository = require('../repositories/clientesRepository');
 const regras = require('../utils/regrasAgendamento');
 const { parseId, ValidationError } = require('../utils/queryParams');
 
@@ -47,6 +48,35 @@ async function list(req, res) {
   const agendamentos = await agendamentosRepository.findAll();
 
   res.json({ dados: agendamentos.map((item) => comRegraDeReagendamento(item, agora)) });
+}
+
+// Visão do Cliente: somente leitura e só os agendamentos dele. Mostra apenas o
+// que interessa ao cliente (sem ids internos nem regras de reagendamento).
+function paraCliente(agendamento) {
+  return {
+    id: agendamento.id,
+    servico: agendamento.servico,
+    dataHora: agendamento.dataHora,
+    duracaoMinutos: agendamento.duracaoMinutos,
+    status: agendamento.status,
+    qtdReagendamentos: agendamento.qtdReagendamentos,
+    reagendadoEm: agendamento.reagendadoEm,
+    placa: agendamento.placa,
+    marca: agendamento.marca,
+    modelo: agendamento.modelo,
+    funcionario: agendamento.funcionario
+  };
+}
+
+async function listMine(req, res) {
+  const cliente = await clientesRepository.findByUsuarioId(req.usuarioLogado.id);
+
+  if (!cliente) {
+    return res.json({ dados: [] });
+  }
+
+  const agendamentos = await agendamentosRepository.findByCliente(cliente.id);
+  return res.json({ dados: agendamentos.map(paraCliente) });
 }
 
 async function options(req, res) {
@@ -200,6 +230,7 @@ async function reagendar(req, res) {
 
 module.exports = {
   list,
+  listMine,
   options,
   horariosNovo,
   horariosReagendamento,

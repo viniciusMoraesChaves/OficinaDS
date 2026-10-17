@@ -35,6 +35,7 @@ const linksPorPerfil: Record<Perfil, LinkItem[]> = {
   [PERFIS.CLIENTE]: [
     { to: '/', label: 'Início', icon: '⌂', end: true },
     { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: '🧾', end: false },
+    { to: '/meus-agendamentos', label: 'Meus agendamentos', icon: '◷', end: false },
   ],
 };
 

@@ -10,6 +10,7 @@ import Usuarios from './pages/Usuarios';
 import Financeiro from './pages/Financeiro';
 import Atendimentos from './pages/Atendimentos';
 import MeusOrcamentos from './pages/MeusOrcamentos';
+import MeusAgendamentos from './pages/MeusAgendamentos';
 import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
 import Veiculos from './pages/Veiculos';
@@ -56,6 +57,15 @@ export default function App() {
             element={
               <RequireAuth perfis={[PERFIS.CLIENTE]}>
                 <MeusOrcamentos />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/meus-agendamentos"
+            element={
+              <RequireAuth perfis={[PERFIS.CLIENTE]}>
+                <MeusAgendamentos />
               </RequireAuth>
             }
           />

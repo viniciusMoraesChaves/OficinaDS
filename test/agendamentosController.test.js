@@ -3,7 +3,14 @@ const assert = require('node:assert/strict');
 
 // Troca o repository real (que acessa o MySQL) por um dublê em memória.
 const repositoryPath = require.resolve('../src/repositories/agendamentosRepository');
-const estado = { agendamento: null, ocupados: [], gravacoes: [] };
+const estado = {
+  agendamento: null,
+  ocupados: [],
+  gravacoes: [],
+  clienteDoUsuario: null,
+  agendamentosDoCliente: [],
+  consultasPorCliente: []
+};
 
 require.cache[repositoryPath] = {
   id: repositoryPath,
@@ -15,6 +22,10 @@ require.cache[repositoryPath] = {
     },
     async findOccupiedByDay() {
       return estado.ocupados;
+    },
+    async findByCliente(clienteId) {
+      estado.consultasPorCliente.push(clienteId);
+      return estado.agendamentosDoCliente;
     },
     async findVehicleById(id) {
       return id === 1 ? { id: 1, clienteId: 7 } : null;
@@ -31,6 +42,19 @@ require.cache[repositoryPath] = {
       validar(estado.ocupados);
       estado.gravacoes.push(dados);
       return { id: 50, ...dados, status: 'Agendado', dataHora: dados.inicioSql.replace(' ', 'T') };
+    }
+  }
+};
+
+const clientesRepositoryPath = require.resolve('../src/repositories/clientesRepository');
+
+require.cache[clientesRepositoryPath] = {
+  id: clientesRepositoryPath,
+  filename: clientesRepositoryPath,
+  loaded: true,
+  exports: {
+    async findByUsuarioId() {
+      return estado.clienteDoUsuario;
     }
   }
 };
@@ -307,4 +331,43 @@ test('create recusa horário já ocupado pelo profissional', async () => {
     ),
     (erro) => erro.statusCode === 409
   );
+});
+
+/* ---------- Visão do Cliente ---------- */
+
+test('listMine devolve só os agendamentos do cliente logado, sem dados internos', async () => {
+  estado.clienteDoUsuario = { id: 7, nome: 'Maria' };
+  estado.consultasPorCliente = [];
+  estado.agendamentosDoCliente = [
+    {
+      id: 3, servico: 'Revisão', dataHora: '2026-10-20T09:00:00', duracaoMinutos: 60,
+      status: 'Agendado', qtdReagendamentos: 1, reagendadoEm: '2026-10-12T10:00:00',
+      placa: 'ABC1D23', marca: 'Fiat', modelo: 'Uno', funcionario: 'Carlos',
+      veiculoId: 1, funcionarioId: 2, cliente: 'Maria',
+      reagendamento: { permitido: true, motivo: null }
+    }
+  ];
+  const res = criarRespostaFake();
+
+  await controller.listMine({ usuarioLogado: { id: 99 }, query: { clienteId: '1' } }, res);
+
+  // o cliente vem do usuário logado, nunca de parâmetros da requisição
+  assert.deepEqual(estado.consultasPorCliente, [7]);
+  assert.equal(res.corpo.dados.length, 1);
+  assert.equal(res.corpo.dados[0].servico, 'Revisão');
+  assert.equal(res.corpo.dados[0].funcionario, 'Carlos');
+  assert.equal('funcionarioId' in res.corpo.dados[0], false);
+  assert.equal('veiculoId' in res.corpo.dados[0], false);
+  assert.equal('reagendamento' in res.corpo.dados[0], false);
+});
+
+test('listMine devolve lista vazia quando o usuário não tem cliente vinculado', async () => {
+  estado.clienteDoUsuario = null;
+  estado.consultasPorCliente = [];
+  const res = criarRespostaFake();
+
+  await controller.listMine({ usuarioLogado: { id: 99 } }, res);
+
+  assert.deepEqual(res.corpo, { dados: [] });
+  assert.deepEqual(estado.consultasPorCliente, []);
 });

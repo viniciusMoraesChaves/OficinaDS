@@ -47,13 +47,20 @@ const CARDS: Record<string, Card> = {
     texto: 'Acompanhe os orçamentos enviados pela oficina e aceite ou recuse cada um.',
     to: '/meus-orcamentos',
     botao: 'Abrir meus orçamentos'
+  },
+  agendamentos: {
+    icon: '◷',
+    titulo: 'Meus agendamentos',
+    texto: 'Veja a data, o horário e a situação dos serviços agendados para o seu veículo.',
+    to: '/meus-agendamentos',
+    botao: 'Abrir meus agendamentos'
   }
 };
 
 const CARDS_POR_PERFIL: Record<Perfil, string[]> = {
   [PERFIS.ADMINISTRADOR]: ['atendimentos', 'clientes', 'funcionarios', 'usuarios', 'financeiro'],
   [PERFIS.FUNCIONARIO]: ['atendimentos', 'clientes'],
-  [PERFIS.CLIENTE]: ['orcamentos']
+  [PERFIS.CLIENTE]: ['orcamentos', 'agendamentos']
 };
 
 export default function Home() {
@@ -69,10 +76,10 @@ export default function Home() {
       <section className="intro">
         <div>
           <span className="story-label">Painel da oficina</span>
-          <h2>{perfil === PERFIS.CLIENTE ? 'Seus orçamentos' : 'Clientes, atendimentos e equipe'}</h2>
+          <h2>{perfil === PERFIS.CLIENTE ? 'Seus orçamentos e agendamentos' : 'Clientes, atendimentos e equipe'}</h2>
           <p>
             {perfil === PERFIS.CLIENTE
-              ? 'Acompanhe os orçamentos enviados pela oficina para o seu veículo.'
+              ? 'Acompanhe os orçamentos e os serviços agendados pela oficina para o seu veículo.'
               : 'Acompanhe os atendimentos em andamento, consulte clientes e gerencie a equipe da oficina em um só lugar.'}
           </p>
         </div>

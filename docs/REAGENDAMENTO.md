@@ -2,6 +2,9 @@
 
 Tela: **Agendamentos** (`/agendamentos`), disponível para Administrador e Funcionario.
 
+O **Cliente** não agenda nem reagenda: ele só consulta os próprios agendamentos em
+**Meus agendamentos** (`/meus-agendamentos`), em modo somente leitura.
+
 ## Regras de reagendamento
 
 Definidas em `src/utils/regrasAgendamento.js` (constante `REGRAS`):
@@ -22,12 +25,15 @@ capacidade da oficina. O próprio agendamento não conta como conflito.
 
 ## API
 
-Todas exigem login (perfil Administrador ou Funcionario).
+Todas exigem login (perfil Administrador ou Funcionario), exceto `/meus`, que é do perfil Cliente.
+O cliente é identificado pelo usuário logado (`cliente.id_usuario`), nunca por parâmetro da
+requisição, e a resposta traz só serviço, veículo, data, responsável e status.
 
 | Método | Rota | O que faz |
 | --- | --- | --- |
 | GET | `/api/agendamentos` | Lista agendamentos e informa se cada um pode ser reagendado |
 | GET | `/api/agendamentos/opcoes` | Veículos, profissionais ativos e regras |
+| GET | `/api/agendamentos/meus` | **Perfil Cliente.** Lista só os agendamentos do cliente logado |
 | GET | `/api/agendamentos/horarios?data=&funcionarioId=&veiculoId=` | Horários livres para um novo agendamento |
 | GET | `/api/agendamentos/:id/horarios?data=` | Horários livres para reagendar |
 | POST | `/api/agendamentos` | Cria agendamento (`veiculoId`, `funcionarioId`, `servico`, `data`, `hora`) |

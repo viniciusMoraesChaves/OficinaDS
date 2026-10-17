@@ -69,3 +69,18 @@ export type HorariosDoDia = {
   fechado: boolean;
   horarios: HorarioDisponivel[];
 };
+
+// O que o Cliente enxerga dos próprios agendamentos (somente leitura).
+export type AgendamentoCliente = {
+  id: number;
+  servico: string;
+  dataHora: string;
+  duracaoMinutos: number;
+  status: StatusAgendamento;
+  qtdReagendamentos: number;
+  reagendadoEm: string | null;
+  placa: string;
+  marca: string;
+  modelo: string;
+  funcionario: string;
+};

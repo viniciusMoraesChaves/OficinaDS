@@ -122,3 +122,13 @@ test('findOccupiedByDay consulta somente status que ocupam horário', async () =
   assert.doesNotMatch(chamada.sql, /FOR UPDATE/);
   assert.deepEqual(chamada.params.slice(2), ['Agendado', 'Confirmado', 'Em atendimento']);
 });
+
+test('findByCliente filtra pelo cliente e deixa concluídos e cancelados por último', async () => {
+  reiniciar();
+
+  await repository.findByCliente(7);
+
+  const chamada = registro.poolCalls[0];
+  assert.match(chamada.sql, /WHERE ag\.id_cliente = \?/);
+  assert.deepEqual(chamada.params, [7, 'Concluído', 'Cancelado']);
+});

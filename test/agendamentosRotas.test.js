@@ -18,6 +18,7 @@ test('rotas de agendamento exigem login', async (t) => {
   const respostas = await Promise.all([
     fetch(`${baseUrl}/api/agendamentos`),
     fetch(`${baseUrl}/api/agendamentos/opcoes`),
+    fetch(`${baseUrl}/api/agendamentos/meus`),
     fetch(`${baseUrl}/api/agendamentos/1/horarios?data=2026-10-20`),
     fetch(`${baseUrl}/api/agendamentos/1/reagendar`, { method: 'PATCH' })
   ]);
