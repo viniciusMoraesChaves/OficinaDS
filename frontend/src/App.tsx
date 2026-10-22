@@ -16,6 +16,7 @@ import Veiculos from './pages/Veiculos';
 import VeiculoHistorico from './pages/VeiculoHistorico';
 import Diagnosticos from './pages/Diagnosticos';
 import Agendamentos from './pages/Agendamentos';
+import Estoque from './pages/Estoque';
 
 export default function App() {
   return (
@@ -105,6 +106,14 @@ export default function App() {
             element={
               <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
                 <VeiculoHistorico />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/estoque"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Estoque />
               </RequireAuth>
             }
           />
