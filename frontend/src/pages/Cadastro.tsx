@@ -25,7 +25,7 @@ export default function Cadastro() {
   const { login } = useAuth();
 
   useEffect(() => {
-    document.title = 'OficinaOS | Criar conta';
+    document.title = 'OficinaDS | Criar conta';
   }, []);
 
   function campoVeiculo(campo: keyof typeof VEICULO_VAZIO, valor: string) {

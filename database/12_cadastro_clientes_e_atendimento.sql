@@ -1,4 +1,4 @@
--- OficinaOS | Cadastro público de clientes e atendimentos sem funcionário vinculado
+-- OficinaDS | Cadastro público de clientes e atendimentos sem funcionário vinculado
 -- Execute conectado como root, após o 11_grant_insert_funcionario.sql.
 -- Idempotente: pode rodar de novo sem erro.
 

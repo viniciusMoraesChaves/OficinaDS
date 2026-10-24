@@ -1,0 +1,136 @@
+/* Painel inicial: saudação, ações rápidas, indicadores e pendências. */
+
+.painel-saudacao {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.painel-saudacao h2 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 34px);
+  letter-spacing: -0.02em;
+}
+
+.painel-saudacao p {
+  margin: 4px 0 0;
+  color: #6b6d67;
+}
+
+.painel-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.painel-indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.painel-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.painel-card:hover,
+.painel-card:focus-visible {
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
+.painel-card__rotulo {
+  color: #4a4c47;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.painel-card__valor {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.painel-card small {
+  color: #6b6d67;
+}
+
+.painel-card--atencao {
+  border-color: #f2c46d;
+  background: #fffaf0;
+}
+
+.painel-card--atencao .painel-card__valor {
+  color: #b45309;
+}
+
+.painel-pendencias {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.painel-ver-tudo {
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.painel-ver-tudo:hover {
+  text-decoration: underline;
+}
+
+.painel-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.painel-lista li + li {
+  border-top: 1px solid var(--border);
+}
+
+.painel-lista a {
+  display: grid;
+  gap: 2px;
+  padding: 12px 20px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.painel-lista a:hover {
+  background: #faf9f7;
+}
+
+.painel-lista span,
+.painel-lista small {
+  color: #6b6d67;
+  font-size: 13px;
+}
+
+.painel-vazio {
+  margin: 0;
+  padding: 18px 20px;
+  color: #6b6d67;
+}
+
+@media (max-width: 640px) {
+  .painel-saudacao {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

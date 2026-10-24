@@ -1,4 +1,4 @@
--- OficinaOS | Controlar perfis e permissões
+-- OficinaDS | Controlar perfis e permissões
 -- Adiciona o terceiro perfil de acesso: Cliente (portal do cliente, a implementar).
 -- Execute após 05_perfis.sql e 06_associacao_usuario_perfil.sql.
 

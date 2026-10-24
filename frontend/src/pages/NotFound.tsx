@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 export default function NotFound() {
   useEffect(() => {
-    document.title = 'OficinaOS | Página não encontrada';
+    document.title = 'OficinaDS | Página não encontrada';
   }, []);
 
   return (
@@ -11,7 +11,7 @@ export default function NotFound() {
       <section className="error-card">
         <strong>404</strong>
         <h1>Página não encontrada</h1>
-        <p>O endereço informado não existe neste módulo da OficinaOS.</p>
+        <p>O endereço informado não existe neste módulo da OficinaDS.</p>
         <Link className="button button--primary" to="/">
           Voltar ao início
         </Link>

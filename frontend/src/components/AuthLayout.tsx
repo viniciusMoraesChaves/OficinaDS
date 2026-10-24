@@ -13,7 +13,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           <span className="auth-brand__mark" aria-hidden="true">
             <Wrench size={18} />
           </span>
-          OficinaOS
+          OficinaDS
         </div>
 
         <div className="auth-page__pitch">

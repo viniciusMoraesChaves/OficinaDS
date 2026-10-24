@@ -35,7 +35,7 @@ function inicioDoAtalho(atalho: Atalho): string {
 }
 
 const ESTILOS = `
-/* Histórico do veículo — mesmo visual do OficinaOS (laranja, bege, cards brancos). */
+/* Histórico do veículo — mesmo visual do OficinaDS (laranja, bege, cards brancos). */
 .hv-page {
   --hv-accent: #f59e0b;
   --hv-accent-strong: #d97706;

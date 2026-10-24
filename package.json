@@ -2,7 +2,7 @@
   "name": "oficina-dm67-dm100",
   "version": "1.0.0",
   "private": true,
-  "description": "Módulo da OficinaOS para consultar clientes e pesquisar funcionários.",
+  "description": "Módulo da OficinaDS para consultar clientes e pesquisar funcionários.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

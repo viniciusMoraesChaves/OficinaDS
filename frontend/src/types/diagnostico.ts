@@ -15,6 +15,7 @@ export type Diagnostico = {
 
 export type OrdemOpcao = {
   id: number;
+  atendimentoId: number | null;
   status: string;
   problemaRelatado: string;
   cliente: string;

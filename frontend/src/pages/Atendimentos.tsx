@@ -5,6 +5,7 @@ import { apiFetch } from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import type { ClienteOpcao } from '../types/cliente';
 import type { AtendimentoAberto, ItemOrcamentoForm, OrcamentoEquipe, StatusOrcamento } from '../types/orcamento';
+import { useSearchParams } from 'react-router-dom';
 
 const STATUS_LABEL: Record<StatusOrcamento, string> = {
   rascunho: 'Rascunho',
@@ -66,7 +67,7 @@ export default function Atendimentos() {
   }, []);
 
   useEffect(() => {
-    document.title = 'OficinaOS | Atendimentos';
+    document.title = 'OficinaDS | Atendimentos';
     carregarAtendimentos();
     carregarOrcamentos();
 
@@ -86,6 +87,17 @@ export default function Atendimentos() {
   }, [atendimentoOrcamento]);
 
   const clienteDetalhe = clientes.find((c) => c.id === clienteSelecionado) ?? null;
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Atalho do painel inicial: /atendimentos?novo=1 abre o formulário.
+  useEffect(() => {
+    if (searchParams.get('novo') === '1') {
+      abrirModalAdicionar();
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function abrirModalAdicionar() {
     setClienteSelecionado('');
@@ -232,7 +244,7 @@ export default function Atendimentos() {
     <Layout
       title="Atendimentos"
       subtitle="Clientes sendo atendidos na oficina agora"
-      documentTitle="OficinaOS | Atendimentos"
+      documentTitle="OficinaDS | Atendimentos"
     >
       <section className="intro">
         <div>

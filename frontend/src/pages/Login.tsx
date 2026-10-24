@@ -19,7 +19,7 @@ export default function Login() {
   const { login } = useAuth();
 
   useEffect(() => {
-    document.title = 'OficinaOS | Entrar';
+    document.title = 'OficinaDS | Entrar';
   }, []);
 
   async function handleSubmit(event: FormEvent) {
@@ -48,7 +48,7 @@ export default function Login() {
         Insira suas credenciais para acessar o painel.
       </p>
 
-      <div className="auth-field" role="radiogroup" aria-label="Como você acessa o OficinaOS?">
+      <div className="auth-field" role="radiogroup" aria-label="Como você acessa o OficinaDS?">
         <label htmlFor="tipo-acesso-oficina" style={{ marginBottom: '8px', display: 'block' }}>
           Como você quer entrar?
         </label>
@@ -116,7 +116,7 @@ export default function Login() {
       <hr className="auth-form__divider" />
 
       <p className="auth-form__switch">
-        Ainda não usa o OficinaOS? <Link to="/cadastro">Abra sua conta</Link>
+        Ainda não usa o OficinaDS? <Link to="/cadastro">Abra sua conta</Link>
       </p>
     </AuthLayout>
   );
