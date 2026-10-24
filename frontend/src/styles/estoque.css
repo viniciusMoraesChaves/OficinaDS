@@ -1,0 +1,81 @@
+/* Estoque de peças: filtros, cartões de resumo e selo de situação. */
+
+.search-panel--estoque {
+  grid-template-columns: minmax(240px, 1fr) 190px 190px auto auto;
+}
+
+.estoque-resumo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.estoque-resumo__item {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.estoque-resumo__item span {
+  color: #6b6d67;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.estoque-resumo__item strong {
+  font-size: 22px;
+}
+
+.situacao-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.situacao-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.situacao-badge--disponivel {
+  color: #1f6b3a;
+  background: #e6f4ea;
+}
+
+.situacao-badge--baixo {
+  color: #8a5a00;
+  background: #fdf1d6;
+}
+
+.situacao-badge--indisponivel {
+  color: #8b2f2f;
+  background: #fbe9e7;
+}
+
+.quantidade-cell small {
+  display: block;
+  color: #6b6d67;
+}
+
+@media (max-width: 900px) {
+  .search-panel--estoque {
+    grid-template-columns: 1fr;
+  }
+
+  .estoque-resumo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
