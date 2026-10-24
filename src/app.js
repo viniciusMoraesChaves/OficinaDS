@@ -16,6 +16,7 @@ const financeiroRoutes = require('./routes/financeiroRoutes');
 const atendimentosRoutes = require('./routes/atendimentosRoutes');
 const orcamentosRoutes = require('./routes/orcamentosRoutes');
 const diagnosticosRoutes = require('./routes/diagnosticosRoutes');
+const pecasRoutes = require('./routes/pecasRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 const agendamentosRoutes = require('./routes/agendamentosRoutes');
 
@@ -45,6 +46,7 @@ app.use('/api/diagnosticos', diagnosticosRoutes);
 app.use('/api/agendamentos', agendamentosRoutes);
 app.use('/api/veiculos', veiculosRoutes);
 app.use('/api/veiculos', historicoRoutes);
+app.use('/api/pecas', pecasRoutes);
 app.use('/api', notFoundApi);
 
 
