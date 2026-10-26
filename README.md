@@ -79,6 +79,23 @@ Histórias:
 - registro de um novo diagnóstico, ligado ao atendimento;
 - edição e exclusão de diagnósticos.
 
+### Estoque de peças
+
+- consulta das peças com busca por nome, código ou localização;
+- filtros por categoria e por situação (disponível, estoque baixo ou indisponível);
+- resumo com o total de peças em cada situação;
+- acesso restrito ao Administrador e ao Funcionario.
+
+### Solicitar peças ao superior
+
+- o funcionário monta um pedido escolhendo as peças e as quantidades, com observação e atendimento opcionais;
+- o pedido pode ser salvo como **rascunho** ou enviado direto ao superior;
+- o **Administrador** (superior) aprova ou rejeita cada pedido enviado, e a rejeição exige um motivo;
+- o funcionário acompanha a situação dos próprios pedidos (rascunho, aguardando decisão, aprovado ou rejeitado);
+- o Administrador vê os pedidos de toda a equipe, e não aprova um pedido que ele mesmo criou.
+
+As regras e a API estão descritas em [`docs/PEDIDOS_PECAS.md`](docs/PEDIDOS_PECAS.md).
+
 ### Cadastro, login e perfis de acesso
 
 - cadastro com escolha entre **Sou da oficina** (nasce como Funcionario) e **Sou cliente** (perfil Cliente, já com o veículo);
@@ -120,6 +137,9 @@ As regras e a API estão descritas em [`docs/REAGENDAMENTO.md`](docs/REAGENDAMEN
 | Clientes | ✅ | ✅ | ❌ |
 | Diagnósticos | ✅ | ✅ | ❌ |
 | Agendamentos (criar e reagendar) | ✅ | ✅ | ❌ |
+| Estoque (consulta) | ✅ | ✅ | ❌ |
+| Pedidos de peças (criar, enviar e acompanhar os próprios) | ✅ | ✅ | ❌ |
+| Aprovar ou rejeitar pedidos de peças | ✅ | ❌ | ❌ |
 | Funcionários | ✅ | ❌ | ❌ |
 | Usuários | ✅ | ❌ | ❌ |
 | Financeiro | ✅ | ❌ | ❌ |
@@ -187,10 +207,13 @@ OficinaDS/
 │   ├── 14_diagnostico_atendimento.sql
 │   ├── 15_agendamentos.sql
 │   ├── 16_historico_veiculo.sql
-│   └── 17_atendimentos_realizados.sql
+│   ├── 17_atendimentos_realizados.sql
+│   ├── 18_estoque_pecas.sql
+│   └── 19_pedidos_pecas.sql
 ├── docs/
 │   ├── DER_DO_MODULO.md
 │   ├── INTEGRACAO_EQUIPE.md
+│   ├── PEDIDOS_PECAS.md
 │   ├── REAGENDAMENTO.md
 │   └── SUBTAREFAS_E_ACEITE.md
 ├── frontend/
@@ -311,6 +334,8 @@ O DER completo e as observações sobre as relações estão em [`docs/DER_DO_MO
 - `atendimento`, `orcamento` e `orcamento_item`: script `09`;
 - `ordem_servico` e `diagnostico`: script `13`, ligados ao atendimento pelo `14`;
 - `peca_utilizada`: script `16`.
+- `peca`: script `18`;
+- `pedido_peca` e `pedido_peca_item`: script `19`.
 
 ## Pré-requisitos
 
@@ -368,6 +393,8 @@ Execute os arquivos da pasta `database` como `root`, **nesta ordem**. A ordem im
 | 14 | `15_agendamentos.sql` | agendamentos e reagendamento |
 | 15 | `16_historico_veiculo.sql` | histórico do veículo e peças utilizadas |
 | 16 | `17_atendimentos_realizados.sql` | atendimentos realizados voltam a aparecer nos diagnósticos |
+| 17 | `18_estoque_pecas.sql` | tabela de peças do estoque, com dados fictícios |
+| 18 | `19_pedidos_pecas.sql` | pedidos de peças ao superior (depois do `03` e do `18`) |
 
 O arquivo `04_consultas_para_estudar.sql` é opcional e contém exemplos de consultas.
 
@@ -390,6 +417,8 @@ mysql -u root -p --default-character-set=utf8mb4 < database/14_diagnostico_atend
 mysql -u root -p --default-character-set=utf8mb4 < database/15_agendamentos.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/16_historico_veiculo.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/17_atendimentos_realizados.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/18_estoque_pecas.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/19_pedidos_pecas.sql
 ```
 
 > No Windows, o `--default-character-set=utf8mb4` evita erros de codificação e acentos quebrados. Pare no primeiro erro e corrija antes de continuar. Se precisar recomeçar do zero, apague o banco com `DROP DATABASE oficina_ds;` e refaça a sequência. Repetir o `15_agendamentos.sql` recalcula as datas dos agendamentos de exemplo e apaga os reagendamentos que você tiver testado.
@@ -525,6 +554,15 @@ Todas as rotas, exceto `saude`, `cadastro` e `login`, exigem o cabeçalho `Autho
 | `GET` | `/api/veiculos` | Equipe | Lista os veículos |
 | `GET` | `/api/veiculos/:id` | Equipe | Consulta um veículo |
 | `GET` | `/api/veiculos/:id/historico` | Equipe | Histórico de atendimentos e peças do veículo |
+| `GET` | `/api/painel` | logado | Indicadores e pendências da tela inicial, conforme o perfil |
+| `GET` | `/api/pecas` | Equipe | Consulta o estoque (busca, categoria, situação e paginação) |
+| `GET` | `/api/pecas/categorias` | Equipe | Categorias de peças |
+| `GET` | `/api/pedidos-pecas` | Equipe | Lista pedidos (Funcionario vê só os dele; Admin vê todos) |
+| `GET` | `/api/pedidos-pecas/opcoes` | Equipe | Peças e atendimentos para montar o pedido |
+| `GET` | `/api/pedidos-pecas/:id` | Equipe | Detalhes e itens de um pedido |
+| `POST` | `/api/pedidos-pecas` | Equipe | Cria um pedido (rascunho ou já enviado) |
+| `PATCH` | `/api/pedidos-pecas/:id/enviar` | Equipe | Envia o rascunho ao superior |
+| `PATCH` | `/api/pedidos-pecas/:id/decisao` | Admin | Aprova ou rejeita um pedido enviado |
 | `GET` | `/api/diagnosticos` | Equipe | Lista os diagnósticos |
 | `GET` | `/api/diagnosticos/opcoes` | Equipe | Ordens e funcionários para o formulário |
 | `POST` | `/api/diagnosticos` | Equipe | Registra um diagnóstico |
@@ -594,6 +632,8 @@ O projeto possui testes para:
 - atendimentos, ordens de serviço e status de orçamento;
 - diagnósticos (validação e acesso ao banco);
 - histórico do veículo;
+- estoque de peças e painel inicial;
+- pedidos de peças (itens e quantidades, envio, aprovação, rejeição e permissões);
 - regras de agendamento e reagendamento (status, antecedência, expediente e conflitos) e a consulta do cliente.
 
 ## Integração da equipe
@@ -627,7 +667,9 @@ Mais detalhes estão em [`docs/INTEGRACAO_EQUIPE.md`](docs/INTEGRACAO_EQUIPE.md)
 - [ ] cancelamento de agendamentos e controle de urgência;
 - [ ] cadastro e edição de veículos pelas telas da oficina;
 - [ ] histórico de status das ordens de serviço;
-- [ ] controle e solicitação de peças;
+- [x] consulta do estoque de peças;
+- [x] solicitar peças ao superior (criar, enviar, aprovar ou rejeitar);
+- [ ] dar baixa no estoque e registrar o recebimento das peças aprovadas;
 - [ ] controle financeiro completo;
 - [ ] avaliações, presença e relatórios.
 

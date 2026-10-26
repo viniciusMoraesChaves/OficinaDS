@@ -73,6 +73,7 @@ a {
 }
 
 .brand {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -118,6 +119,12 @@ a {
 .sidebar__nav {
   display: grid;
   gap: 5px;
+  align-content: start;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3b36 transparent;
 }
 
 .sidebar__link {
@@ -153,6 +160,7 @@ a {
 }
 
 .sidebar__footer {
+  flex-shrink: 0;
   margin-top: auto;
   padding-top: 20px;
   border-top: 1px solid #292a26;

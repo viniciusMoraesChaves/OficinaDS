@@ -24,7 +24,10 @@ const ACOES_POR_PERFIL: Record<Perfil, Acao[]> = {
     { rotulo: 'Registrar diagnóstico', to: '/diagnosticos' },
     { rotulo: 'Consultar estoque', to: '/estoque' }
   ],
-  [PERFIS.CLIENTE]: [{ rotulo: 'Ver meus orçamentos', to: '/meus-orcamentos' }]
+  [PERFIS.CLIENTE]: [
+    { rotulo: 'Ver meus orçamentos', to: '/meus-orcamentos' },
+    { rotulo: 'Ver meus agendamentos', to: '/meus-agendamentos' }
+  ]
 };
 
 function saudacao(hora: number) {

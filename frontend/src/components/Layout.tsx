@@ -20,7 +20,8 @@ const operacao: Grupo = {
   links: [
     { to: '/atendimentos', label: 'Atendimentos', icon: '🔧' },
     { to: '/agendamentos', label: 'Agendamentos', icon: '◷' },
-    { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕' }
+    { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕' },
+    { to: '/pedidos-pecas', label: 'Pedidos de peças', icon: '📦' }
   ]
 };
 
@@ -46,7 +47,13 @@ const gruposPorPerfil: Record<Perfil, Grupo[]> = {
   [PERFIS.ADMINISTRADOR]: [{ links: [inicio] }, operacao, cadastros, administracao],
   [PERFIS.FUNCIONARIO]: [{ links: [inicio] }, operacao, cadastros],
   [PERFIS.CLIENTE]: [
-    { links: [inicio, { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: '🧾' }] }
+    {
+      links: [
+        inicio,
+        { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: '🧾' },
+        { to: '/meus-agendamentos', label: 'Meus agendamentos', icon: '◷' }
+      ]
+    }
   ]
 };
 
