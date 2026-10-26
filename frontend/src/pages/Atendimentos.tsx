@@ -51,6 +51,14 @@ export default function Atendimentos() {
   const [orcamentoCriadoId, setOrcamentoCriadoId] = useState<number | null>(null);
 
   const [orcamentos, setOrcamentos] = useState<OrcamentoEquipe[]>([]);
+  // --- atualização do progresso do serviço ---
+  const progressoDialogRef = useRef<HTMLDialogElement>(null);
+  const [atendimentoProgresso, setAtendimentoProgresso] =
+    useState<AtendimentoAberto | null>(null);
+  const [etapaProgresso, setEtapaProgresso] = useState('Aberta');
+  const [previsaoProgresso, setPrevisaoProgresso] = useState('');
+  const [salvandoProgresso, setSalvandoProgresso] = useState(false);
+  const [erroProgresso, setErroProgresso] = useState('');
 
   const carregarOrcamentos = useCallback(async () => {
     try {
@@ -85,6 +93,12 @@ export default function Atendimentos() {
     const timer = setInterval(carregarOrcamentos, INTERVALO_ATUALIZACAO_MS);
     return () => clearInterval(timer);
   }, [carregarAtendimentos, carregarOrcamentos]);
+  useEffect(() => {
+    const dialog = progressoDialogRef.current;
+    if (atendimentoProgresso && dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }, [atendimentoProgresso]);
 
   useEffect(() => {
     const dialog = adicionarDialogRef.current;
@@ -172,6 +186,57 @@ export default function Atendimentos() {
     }
   }
 
+  function abrirModalProgresso(atendimento: AtendimentoAberto) {
+    setAtendimentoProgresso(atendimento);
+    setEtapaProgresso(atendimento.etapaAtual || 'Aberta');
+    setPrevisaoProgresso(
+      atendimento.previsaoConclusao
+        ? (() => {
+            const data = new Date(atendimento.previsaoConclusao);
+
+            const ano = data.getFullYear();
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const dia = String(data.getDate()).padStart(2, '0');
+            const hora = String(data.getHours()).padStart(2, '0');
+            const minuto = String(data.getMinutes()).padStart(2, '0');
+
+            return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+          })()
+        : ''
+    );
+    setErroProgresso('');
+  }
+
+  async function handleSalvarProgresso(e: FormEvent) {
+    e.preventDefault();
+    if (!atendimentoProgresso) return;
+
+    setSalvandoProgresso(true);
+    setErroProgresso('');
+
+    try {
+      await apiFetch(`/api/atendimentos/${atendimentoProgresso.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: etapaProgresso,
+          ...(previsaoProgresso
+            ? { previsaoConclusao: `${previsaoProgresso.replace('T', ' ')}:00` }
+            : {})
+        })
+      });
+
+      progressoDialogRef.current?.close();
+      setAtendimentoProgresso(null);
+      setMensagem('Progresso atualizado com sucesso.');
+      carregarAtendimentos();
+    } catch (err) {
+      setErroProgresso(
+        err instanceof Error ? err.message : 'Erro ao atualizar o progresso.'
+      );
+    } finally {
+      setSalvandoProgresso(false);
+    }
+  }
   function abrirModalOrcamento(atendimento: AtendimentoAberto) {
     setAtendimentoOrcamento(atendimento);
     setSituacaoVeiculo('');
@@ -331,6 +396,13 @@ export default function Atendimentos() {
                   <td className="nowrap">{formatDateTime(a.criadoEm)}</td>
                   <td className="align-right">
                     <button
+                      className="button button--secondary button--small"
+                      type="button"
+                      onClick={() => abrirModalProgresso(a)}
+                    >
+                      Atualizar progresso
+                    </button>{' '}
+                    <button
                       className="button button--primary button--small"
                       type="button"
                       onClick={() => abrirModalOrcamento(a)}
@@ -397,6 +469,93 @@ export default function Atendimentos() {
           </table>
         </div>
       </section>
+
+      {atendimentoProgresso && (
+        <dialog
+          ref={progressoDialogRef}
+          className="dialog"
+          onClose={() => setAtendimentoProgresso(null)}
+        >
+          <div className="dialog__header">
+            <h2>Atualizar progresso</h2>
+            <button
+              className="dialog__close"
+              type="button"
+              onClick={() => progressoDialogRef.current?.close()}
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+          </div>
+
+          <form className="dialog__body" onSubmit={handleSalvarProgresso}>
+            <p>
+              <strong>{atendimentoProgresso.clienteNome}</strong>
+              {' — '}
+              {atendimentoProgresso.marca} {atendimentoProgresso.modelo}
+              {' — '}
+              {atendimentoProgresso.placa}
+            </p>
+
+            <div className="field">
+              <label htmlFor="etapa-progresso">Etapa atual</label>
+              <select
+                id="etapa-progresso"
+                value={etapaProgresso}
+                onChange={(e) => setEtapaProgresso(e.target.value)}
+              >
+                <option value="Aberta">Veículo recebido</option>
+                <option value="Em diagnóstico">Em diagnóstico</option>
+                <option value="Em serviço">Em serviço</option>
+                <option value="Em testes">Testes finais</option>
+                <option value="Concluída">Serviço concluído</option>
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="previsao-progresso">
+                Previsão de conclusão (opcional)
+              </label>
+              <input
+                id="previsao-progresso"
+                type="datetime-local"
+                value={previsaoProgresso}
+                onChange={(e) => setPrevisaoProgresso(e.target.value)}
+              />
+            </div>
+
+            {erroProgresso && (
+              <Feedback type="error" message={erroProgresso} />
+            )}
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px',
+                marginTop: '20px'
+              }}
+            >
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => progressoDialogRef.current?.close()}
+                disabled={salvandoProgresso}
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="button button--primary"
+                type="submit"
+                disabled={salvandoProgresso}
+              >
+                {salvandoProgresso ? 'Salvando...' : 'Salvar progresso'}
+              </button>
+            </div>
+          </form>
+        </dialog>
+      )}
 
       {modalAdicionarAberto && (
         <dialog
