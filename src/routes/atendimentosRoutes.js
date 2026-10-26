@@ -6,7 +6,10 @@ const { PERFIS } = require('../utils/perfis');
 const router = express.Router();
 
 const equipe = protegerRota(PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO);
+const cliente = protegerRota(PERFIS.CLIENTE);
+router.patch('/:id/status', equipe, orcamentosController.atualizarStatusAtendimento);
 
+router.get('/meus', cliente, orcamentosController.listarMeusAtendimentos);
 router.get('/', equipe, orcamentosController.listarAtendimentos);
 router.post('/', equipe, orcamentosController.criarAtendimento);
 router.delete('/:id', equipe, orcamentosController.removerAtendimento);

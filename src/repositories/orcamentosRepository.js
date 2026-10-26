@@ -51,14 +51,41 @@ async function listarAtendimentosAbertos() {
        v.marca,
        v.modelo,
        f.id_funcionario AS idFuncionario,
+       os.status AS etapaAtual,
+       os.previsao_conclusao AS previsaoConclusao,
        COALESCE(f.nome, 'Equipe') AS funcionarioNome
      FROM atendimento a
      INNER JOIN cliente c ON c.id_cliente = a.id_cliente
      INNER JOIN veiculo v ON v.id_veiculo = a.id_veiculo
      LEFT JOIN funcionario f ON f.id_funcionario = a.id_funcionario
+     LEFT JOIN ordem_servico os
+     ON os.id_atendimento = a.id_atendimento
      WHERE a.status = 'aberto'
      ORDER BY a.criado_em DESC`
   );
+  return rows;
+}
+
+async function listarAtendimentosPorCliente(idCliente) {
+  const [rows] = await pool.execute(
+    `SELECT
+       a.id_atendimento AS id,
+       a.status,
+       a.criado_em AS criadoEm,
+       v.id_veiculo AS idVeiculo,
+       v.placa,
+       v.marca,
+       v.modelo,
+       os.status AS etapaAtual,
+       os.previsao_conclusao AS previsaoConclusao
+     FROM atendimento a
+     INNER JOIN veiculo v ON v.id_veiculo = a.id_veiculo
+     LEFT JOIN ordem_servico os ON os.id_atendimento = a.id_atendimento
+     WHERE a.id_cliente = ? AND a.status = 'aberto'
+     ORDER BY a.criado_em DESC`,
+    [idCliente]
+  );
+
   return rows;
 }
 
@@ -225,16 +252,43 @@ async function listarParaEquipe() {
   return rows;
 }
 
+async function atualizarStatusOrdem(
+  idAtendimento,
+  novoStatus,
+  idFuncionario,
+  administrador,
+  previsaoConclusao
+) {
+  const [resultado] = await pool.execute(
+    `UPDATE ordem_servico
+     SET status = ?,
+         previsao_conclusao = COALESCE(?, previsao_conclusao)
+     WHERE id_atendimento = ?
+       AND (? = 1 OR id_funcionario = ?)`,
+    [
+      novoStatus,
+      previsaoConclusao,
+      idAtendimento,
+      administrador ? 1 : 0,
+      idFuncionario
+    ]
+  );
+
+  return resultado.affectedRows > 0;
+}
+
 module.exports = {
   listarParaEquipe,
   veiculoPertenceAoCliente,
   criarAtendimento,
   listarAtendimentosAbertos,
+  listarAtendimentosPorCliente,
   buscarAtendimentoPorId,
   cancelarAtendimento,
   criarOrcamento,
   buscarPorId,
   marcarComoEnviado,
   registrarDecisao,
-  listarPorCliente
+  listarPorCliente,
+  atualizarStatusOrdem
 };

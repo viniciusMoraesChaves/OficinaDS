@@ -10,6 +10,15 @@ import type { IndicadorPainel, SecaoPendencia, PainelResponse } from '../types/p
 import '../styles/painel.css';
 
 type Acao = { rotulo: string; to: string };
+type AtendimentoCliente = {
+  id: number;
+  placa: string;
+  marca: string;
+  modelo: string;
+  status: string;
+  etapaAtual: string | null;
+  previsaoConclusao: string | null;
+};
 
 const ACOES_POR_PERFIL: Record<Perfil, Acao[]> = {
   [PERFIS.ADMINISTRADOR]: [
@@ -46,6 +55,7 @@ export default function Home() {
   const [pendencias, setPendencias] = useState<SecaoPendencia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [atendimentos, setAtendimentos] = useState<AtendimentoCliente[]>([]);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -56,12 +66,19 @@ export default function Home() {
       setNome(dados.usuario.nome);
       setIndicadores(dados.indicadores);
       setPendencias(dados.pendencias);
+      if (perfil === PERFIS.CLIENTE) {
+        const resposta = await apiFetch<{ dados: AtendimentoCliente[] }>(
+          '/api/atendimentos/meus'
+        );
+
+        setAtendimentos(resposta.dados);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível carregar o painel.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [perfil]);
 
   useEffect(() => {
     carregar();
@@ -152,6 +169,57 @@ export default function Home() {
               )}
             </article>
           ))}
+        </section>
+      )}
+      {perfil === PERFIS.CLIENTE && !loading && !error && (
+        <section className="panel">
+          <header className="panel__header">
+            <div>
+              <h3>Meus veículos em atendimento</h3>
+              <p>Acompanhe o progresso dos serviços da oficina.</p>
+            </div>
+          </header>
+
+          {atendimentos.length === 0 ? (
+            <p className="painel-vazio">
+              Você não possui veículos em atendimento no momento.
+            </p>
+          ) : (
+            <ul className="painel-lista">
+              {atendimentos.map((atendimento) => (
+                <li key={atendimento.id}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '12px 18px',
+                      width: '100%'
+                    }}
+                  >
+                    <strong>
+                      {atendimento.marca} {atendimento.modelo}
+                    </strong>
+
+                    <span>Placa: {atendimento.placa}</span>
+
+                    <span>
+                      Etapa atual: {atendimento.etapaAtual || 'Não informada'}
+                    </span>
+                    <span>
+                      Previsão de conclusão:{' '}
+                      {atendimento.previsaoConclusao
+                        ? new Date(atendimento.previsaoConclusao).toLocaleString('pt-BR', {
+                            dateStyle: 'short',
+                            timeStyle: 'short'
+                          })
+                        : 'Não informada'}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
     </Layout>

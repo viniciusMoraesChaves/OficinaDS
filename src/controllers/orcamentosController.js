@@ -3,6 +3,7 @@ const clientesRepository = require('../repositories/clientesRepository');
 const funcionariosRepository = require('../repositories/funcionariosRepository');
 const { parseId } = require('../utils/queryParams');
 const { validarDecisao } = require('../utils/statusOrcamento');
+const { PERFIS } = require('../utils/perfis');
 
 async function criarAtendimento(req, res) {
   const idCliente = Number(req.body.idCliente);
@@ -40,6 +41,18 @@ async function criarAtendimento(req, res) {
 
 async function listarAtendimentos(req, res) {
   const atendimentos = await orcamentosRepository.listarAtendimentosAbertos();
+  res.json({ dados: atendimentos });
+}
+
+async function listarMeusAtendimentos(req, res) {
+  const cliente = await clientesRepository.findByUsuarioId(req.usuarioLogado.id);
+
+  if (!cliente) {
+    return res.json({ dados: [] });
+  }
+
+  const atendimentos = await orcamentosRepository.listarAtendimentosPorCliente(cliente.id);
+
   res.json({ dados: atendimentos });
 }
 
@@ -165,14 +178,78 @@ async function decidirOrcamento(req, res) {
   res.json({ mensagem: decisao === 'aceito' ? 'Orçamento aceito.' : 'Orçamento recusado.' });
 }
 
+async function atualizarStatusAtendimento(req, res) {
+  const idAtendimento = parseId(req.params.id);
+  const novoStatus = String(req.body.status || '').trim();
+  const previsaoConclusao = req.body.previsaoConclusao ?? null;
+
+  if (previsaoConclusao !== null) {
+    const data = new Date(previsaoConclusao);
+
+    if (
+      typeof previsaoConclusao !== 'string' ||
+      !previsaoConclusao.trim() ||
+      Number.isNaN(data.getTime())
+    ) {
+      return res.status(400).json({
+        mensagem: 'Previsão de conclusão inválida.'
+      });
+    }
+  }
+
+  const statusPermitidos = [
+    'Aberta',
+    'Em diagnóstico',
+    'Em serviço',
+    'Em testes',
+    'Concluída'
+  ];
+
+  if (!statusPermitidos.includes(novoStatus)) {
+    return res.status(400).json({
+      mensagem: 'Status de atendimento inválido.'
+    });
+  }
+
+  const administrador = req.usuarioLogado.perfil === PERFIS.ADMINISTRADOR;
+
+  const funcionario = administrador
+    ? null
+    : await funcionariosRepository.findByUsuarioId(req.usuarioLogado.id);
+
+  if (!administrador && !funcionario) {
+    return res.status(403).json({
+      mensagem: 'Funcionário não identificado.'
+    });
+  }
+
+  const atualizado = await orcamentosRepository.atualizarStatusOrdem(
+    idAtendimento,
+    novoStatus,
+    funcionario?.id ?? null,
+    administrador,
+    previsaoConclusao
+  );
+
+  if (!atualizado) {
+    return res.status(404).json({
+      mensagem: 'Atendimento não encontrado ou sem permissão para atualização.'
+    });
+  }
+
+  res.json({ mensagem: 'Status atualizado com sucesso.' });
+}
+
 module.exports = {
   criarAtendimento,
   listarAtendimentos,
+  listarMeusAtendimentos,
   removerAtendimento,
   criarOrcamento,
   obterOrcamento,
   listarMeus,
   listarTodos,
   enviarOrcamento,
+  atualizarStatusAtendimento,
   decidirOrcamento
 };
