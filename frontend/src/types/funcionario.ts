@@ -18,3 +18,9 @@ export type ListaFuncionariosResponse = {
   dados: Funcionario[];
   paginacao: Paginacao;
 };
+
+export type FuncionarioOpcao = {
+  id: number;
+  nome: string;
+  cargo: string;
+};
