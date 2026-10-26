@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Layout } from '../components/Layout';
 import { Feedback } from '../components/Feedback';
 import { Pagination } from '../components/Pagination';
 import { apiFetch } from '../services/api';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDateTime } from '../utils/format';
 import type { Paginacao } from '../types/cliente';
 import type {
   FiltroSituacao,
+  BaixaPeca,
   ListaPecasResponse,
   Peca,
   ResumoEstoque,
@@ -37,6 +38,14 @@ export default function Estoque() {
   const [pagina, setPagina] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [mensagem, setMensagem] = useState('');
+  const [baixas, setBaixas] = useState<BaixaPeca[]>([]);
+  const [pecaBaixa, setPecaBaixa] = useState<Peca | null>(null);
+  const [quantidadeBaixa, setQuantidadeBaixa] = useState(1);
+  const [motivoBaixa, setMotivoBaixa] = useState('');
+  const [salvandoBaixa, setSalvandoBaixa] = useState(false);
+  const [erroBaixa, setErroBaixa] = useState('');
+  const baixaDialogRef = useRef<HTMLDialogElement>(null);
 
   const carregarPecas = useCallback(async () => {
     setLoading(true);
@@ -72,6 +81,55 @@ export default function Estoque() {
       .then((resposta) => setCategorias(resposta.dados))
       .catch(() => setCategorias([]));
   }, []);
+
+  const carregarBaixas = useCallback(async () => {
+    try {
+      const resposta = await apiFetch<{ dados: BaixaPeca[] }>('/api/pecas/baixas');
+      setBaixas(resposta.dados);
+    } catch {
+      setBaixas([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarBaixas();
+  }, [carregarBaixas]);
+
+  useEffect(() => {
+    const dialog = baixaDialogRef.current;
+    if (pecaBaixa && dialog && !dialog.open) dialog.showModal();
+  }, [pecaBaixa]);
+
+  function abrirBaixa(peca: Peca) {
+    setPecaBaixa(peca);
+    setQuantidadeBaixa(1);
+    setMotivoBaixa('');
+    setErroBaixa('');
+    setMensagem('');
+  }
+
+  async function handleBaixa(event: FormEvent) {
+    event.preventDefault();
+    if (!pecaBaixa) return;
+
+    setSalvandoBaixa(true);
+    setErroBaixa('');
+
+    try {
+      await apiFetch(`/api/pecas/${pecaBaixa.id}/baixas`, {
+        method: 'POST',
+        body: JSON.stringify({ quantidade: quantidadeBaixa, motivo: motivoBaixa })
+      });
+      baixaDialogRef.current?.close();
+      setPecaBaixa(null);
+      setMensagem('Baixa registrada e estoque atualizado.');
+      await Promise.all([carregarPecas(), carregarBaixas()]);
+    } catch (err) {
+      setErroBaixa(err instanceof Error ? err.message : 'Erro ao registrar a baixa.');
+    } finally {
+      setSalvandoBaixa(false);
+    }
+  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -140,6 +198,8 @@ export default function Estoque() {
           <strong>{resumo.indisponivel}</strong>
         </div>
       </section>
+
+      {mensagem && <Feedback type="success" message={mensagem} />}
 
       <form
         className="search-panel search-panel--estoque"
@@ -221,12 +281,13 @@ export default function Estoque() {
                 <th scope="col">Localização</th>
                 <th scope="col">Preço</th>
                 <th scope="col">Situação</th>
+                <th scope="col"><span className="visually-hidden">Ações</span></th>
               </tr>
             </thead>
             <tbody>
               {!loading && !error && pecas.length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={6}>
+                  <td className="empty-cell" colSpan={7}>
                     {filtrando
                       ? 'Nenhuma peça corresponde aos filtros.'
                       : 'Nenhuma peça cadastrada no estoque.'}
@@ -244,6 +305,16 @@ export default function Estoque() {
                       <strong>{peca.nome}</strong>
                       <small>{peca.categoria}</small>
                     </span>
+                  </td>
+                  <td className="align-right">
+                    <button
+                      className="button button--secondary button--small"
+                      type="button"
+                      onClick={() => abrirBaixa(peca)}
+                      disabled={peca.quantidade === 0}
+                    >
+                      Dar baixa
+                    </button>
                   </td>
                   <td className="quantidade-cell nowrap">
                     <strong>{peca.quantidade}</strong>
@@ -271,6 +342,92 @@ export default function Estoque() {
           />
         )}
       </section>
+
+      <section className="panel" aria-labelledby="baixas-list-title">
+        <header className="panel__header">
+          <div>
+            <h3 id="baixas-list-title">Baixas recentes</h3>
+            <p>Peças danificadas ou inutilizáveis retiradas do estoque.</p>
+          </div>
+        </header>
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Peça</th>
+                <th>Quantidade</th>
+                <th>Motivo</th>
+                <th>Registrado por</th>
+                <th>Data e hora</th>
+              </tr>
+            </thead>
+            <tbody>
+              {baixas.length === 0 && (
+                <tr><td className="empty-cell" colSpan={5}>Nenhuma baixa registrada.</td></tr>
+              )}
+              {baixas.map((baixa) => (
+                <tr key={baixa.id}>
+                  <td><strong>{baixa.pecaCodigo}</strong> — {baixa.pecaNome}</td>
+                  <td>{baixa.quantidade}</td>
+                  <td>{baixa.motivo}</td>
+                  <td>{baixa.usuarioNome}</td>
+                  <td className="nowrap">{formatDateTime(baixa.criadaEm)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {pecaBaixa && (
+        <dialog
+          ref={baixaDialogRef}
+          className="dialog"
+          onClose={() => setPecaBaixa(null)}
+        >
+          <div className="dialog__header">
+            <h2>Dar baixa em peça</h2>
+            <button className="dialog__close" type="button" onClick={() => baixaDialogRef.current?.close()} aria-label="Fechar">×</button>
+          </div>
+          <form className="dialog__body" onSubmit={handleBaixa}>
+            <p><strong>{pecaBaixa.codigo} — {pecaBaixa.nome}</strong></p>
+            <p className="search-summary">Disponível: {pecaBaixa.quantidade} unidade(s)</p>
+            <div className="field">
+              <label htmlFor="baixa-quantidade">Quantidade</label>
+              <input
+                id="baixa-quantidade"
+                type="number"
+                min={1}
+                max={pecaBaixa.quantidade}
+                step={1}
+                value={quantidadeBaixa}
+                onChange={(event) => setQuantidadeBaixa(Number(event.target.value))}
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="baixa-motivo">Motivo</label>
+              <textarea
+                id="baixa-motivo"
+                rows={3}
+                minLength={5}
+                maxLength={255}
+                value={motivoBaixa}
+                onChange={(event) => setMotivoBaixa(event.target.value)}
+                placeholder="Ex.: peça trincada durante o armazenamento"
+                required
+              />
+            </div>
+            {erroBaixa && <Feedback type="error" message={erroBaixa} />}
+            <div className="dialog__actions">
+              <button className="button button--secondary" type="button" onClick={() => baixaDialogRef.current?.close()} disabled={salvandoBaixa}>Cancelar</button>
+              <button className="button button--primary" type="submit" disabled={salvandoBaixa}>
+                {salvandoBaixa ? 'Registrando...' : 'Confirmar baixa'}
+              </button>
+            </div>
+          </form>
+        </dialog>
+      )}
     </Layout>
   );
 }
