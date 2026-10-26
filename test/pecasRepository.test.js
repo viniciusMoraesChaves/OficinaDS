@@ -79,3 +79,13 @@ test('resumoPorSituacao soma os totais por situação', async () => {
 test('listarCategorias devolve só os nomes', async () => {
   assert.deepEqual(await pecasRepository.listarCategorias(), ['Filtros', 'Freios']);
 });
+
+test('histórico de baixas busca o nome no cadastro relacionado ao usuário', async () => {
+  calls.length = 0;
+
+  await pecasRepository.listarBaixasRecentes();
+
+  assert.match(calls[0].sql, /COALESCE\(f\.nome, c\.nome, u\.email\)/);
+  assert.match(calls[0].sql, /LEFT JOIN funcionario/);
+  assert.match(calls[0].sql, /LEFT JOIN cliente/);
+});

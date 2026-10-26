@@ -9,8 +9,15 @@ test('rotas de estoque exigem login', async (t) => {
 
   const base = `http://127.0.0.1:${server.address().port}`;
 
-  for (const caminho of ['/api/pecas', '/api/pecas/categorias']) {
-    const resposta = await fetch(`${base}${caminho}`);
+  const requisicoes = [
+    ['GET', '/api/pecas'],
+    ['GET', '/api/pecas/categorias'],
+    ['GET', '/api/pecas/baixas'],
+    ['POST', '/api/pecas/1/baixas']
+  ];
+
+  for (const [method, caminho] of requisicoes) {
+    const resposta = await fetch(`${base}${caminho}`, { method });
     assert.equal(resposta.status, 401, caminho);
   }
 });

@@ -10,5 +10,7 @@ const equipe = protegerRota(PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO);
 
 router.get('/', equipe, pecasController.list);
 router.get('/categorias', equipe, pecasController.categorias);
+router.get('/baixas', equipe, pecasController.listarBaixas);
+router.post('/:id/baixas', equipe, pecasController.baixar);
 
 module.exports = router;
