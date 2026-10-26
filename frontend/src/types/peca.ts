@@ -28,3 +28,14 @@ export type ListaPecasResponse = {
   resumo: ResumoEstoque;
   paginacao: Paginacao;
 };
+
+export type BaixaPeca = {
+  id: number;
+  idPeca: number;
+  pecaCodigo: string;
+  pecaNome: string;
+  quantidade: number;
+  motivo: string;
+  usuarioNome: string;
+  criadaEm: string;
+};

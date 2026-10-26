@@ -1,4 +1,5 @@
 const { pool } = require('../config/database');
+const { ConflitoError } = require('../utils/erros');
 
 // Situação de disponibilidade calculada a partir das quantidades.
 const SITUACAO_SQL = `CASE
@@ -88,4 +89,89 @@ async function listarCategorias() {
   return rows.map((row) => row.categoria);
 }
 
-module.exports = { findAll, resumoPorSituacao, listarCategorias, montarFiltro };
+async function darBaixa({ idPeca, quantidade, motivo, idUsuario }) {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [pecas] = await connection.execute(
+      `SELECT id_peca, nome, quantidade_disponivel
+       FROM peca
+       WHERE id_peca = ? AND ativo = 1
+       FOR UPDATE`,
+      [idPeca]
+    );
+
+    if (pecas.length === 0) {
+      await connection.rollback();
+      return null;
+    }
+
+    const peca = pecas[0];
+    if (quantidade > peca.quantidade_disponivel) {
+      throw new ConflitoError(
+        `Quantidade indisponível. Existem ${peca.quantidade_disponivel} unidade(s) em estoque.`
+      );
+    }
+
+    const novaQuantidade = peca.quantidade_disponivel - quantidade;
+    await connection.execute(
+      'UPDATE peca SET quantidade_disponivel = ? WHERE id_peca = ?',
+      [novaQuantidade, idPeca]
+    );
+
+    const [resultado] = await connection.execute(
+      `INSERT INTO baixa_peca (id_peca, quantidade, motivo, id_usuario)
+       VALUES (?, ?, ?, ?)`,
+      [idPeca, quantidade, motivo, idUsuario]
+    );
+
+    await connection.commit();
+    return {
+      id: resultado.insertId,
+      idPeca,
+      pecaNome: peca.nome,
+      quantidade,
+      motivo,
+      quantidadeDisponivel: novaQuantidade
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+async function listarBaixasRecentes(limite = 20) {
+  const [rows] = await pool.execute(
+    `SELECT
+       b.id_baixa AS id,
+       b.quantidade,
+       b.motivo,
+       b.criada_em AS criadaEm,
+       p.id_peca AS idPeca,
+       p.codigo AS pecaCodigo,
+       p.nome AS pecaNome,
+       COALESCE(f.nome, c.nome, u.email) AS usuarioNome
+     FROM baixa_peca b
+     INNER JOIN peca p ON p.id_peca = b.id_peca
+     INNER JOIN usuario u ON u.id_usuario = b.id_usuario
+     LEFT JOIN funcionario f ON f.id_usuario = u.id_usuario
+     LEFT JOIN cliente c ON c.id_usuario = u.id_usuario
+     ORDER BY b.criada_em DESC, b.id_baixa DESC
+     LIMIT ?`,
+    [limite]
+  );
+  return rows;
+}
+
+module.exports = {
+  findAll,
+  resumoPorSituacao,
+  listarCategorias,
+  montarFiltro,
+  darBaixa,
+  listarBaixasRecentes
+};
