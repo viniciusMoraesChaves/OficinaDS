@@ -132,6 +132,30 @@ async function findByUsuarioId(idUsuario) {
   return rows[0] || null;
 }
 
+async function findAtivoById(idFuncionario) {
+  const [rows] = await pool.execute(
+    `SELECT id_funcionario AS id, nome
+     FROM funcionario
+     WHERE id_funcionario = ? AND ativo = 1`,
+    [idFuncionario]
+  );
+  return rows[0] || null;
+}
+
+async function listarAtivos() {
+  const [rows] = await pool.execute(
+    `SELECT
+       f.id_funcionario AS id,
+       f.nome,
+       ca.nome AS cargo
+     FROM funcionario f
+     INNER JOIN cargo ca ON ca.id_cargo = f.id_cargo
+     WHERE f.ativo = 1
+     ORDER BY f.nome ASC`
+  );
+  return rows;
+}
+
 async function criar({ nome, cpf, email, telefone, dataAdmissao, idCargo, idUsuario }) {
   const [resultado] = await pool.execute(
     `INSERT INTO funcionario (id_usuario, id_cargo, nome, cpf, email, telefone, data_admissao, ativo)
@@ -141,4 +165,12 @@ async function criar({ nome, cpf, email, telefone, dataAdmissao, idCargo, idUsua
   return { id: resultado.insertId, nome, cpf, email, telefone, dataAdmissao, idCargo };
 }
 
-module.exports = { search, updateCargoEPerfil, findByUsuarioId, criar, posicaoNaLista };
+module.exports = {
+  search,
+  updateCargoEPerfil,
+  findByUsuarioId,
+  findAtivoById,
+  listarAtivos,
+  criar,
+  posicaoNaLista
+};

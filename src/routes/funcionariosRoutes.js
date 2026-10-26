@@ -6,6 +6,12 @@ const { PERFIS } = require('../utils/perfis');
 const router = express.Router();
 
 router.get(
+  '/opcoes',
+  protegerRota(PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO),
+  funcionariosController.listarOpcoes
+);
+
+router.get(
   '/',
   protegerRota(PERFIS.ADMINISTRADOR),
   funcionariosController.search

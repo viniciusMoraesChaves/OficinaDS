@@ -4,6 +4,7 @@ import { Feedback } from '../components/Feedback';
 import { apiFetch } from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import type { ClienteOpcao } from '../types/cliente';
+import type { FuncionarioOpcao } from '../types/funcionario';
 import type { AtendimentoAberto, ItemOrcamentoForm, OrcamentoEquipe, StatusOrcamento, UrgenciaAtendimento } from '../types/orcamento';
 import { useSearchParams } from 'react-router-dom';
 
@@ -34,6 +35,8 @@ export default function Atendimentos() {
   const [clientes, setClientes] = useState<ClienteOpcao[]>([]);
   const [clienteSelecionado, setClienteSelecionado] = useState<number | ''>('');
   const [carregandoClientes, setCarregandoClientes] = useState(false);
+  const [profissionais, setProfissionais] = useState<FuncionarioOpcao[]>([]);
+  const [profissionalSelecionado, setProfissionalSelecionado] = useState<number | ''>('');
   const [veiculoSelecionado, setVeiculoSelecionado] = useState<number | ''>('');
   const [salvandoAtendimento, setSalvandoAtendimento] = useState(false);
   const [erroAtendimento, setErroAtendimento] = useState('');
@@ -126,16 +129,24 @@ export default function Atendimentos() {
   function abrirModalAdicionar() {
     setClienteSelecionado('');
     setVeiculoSelecionado('');
+    setProfissionalSelecionado('');
     setErroAtendimento('');
     setUrgencia('media');
     setClientes([]);
+    setProfissionais([]);
     setCarregandoClientes(true);
     setModalAdicionarAberto(true);
 
-    apiFetch<{ dados: ClienteOpcao[] }>('/api/clientes/opcoes')
-      .then((res) => setClientes(res.dados))
+    Promise.all([
+      apiFetch<{ dados: ClienteOpcao[] }>('/api/clientes/opcoes'),
+      apiFetch<{ dados: FuncionarioOpcao[] }>('/api/funcionarios/opcoes')
+    ])
+      .then(([clientesRes, profissionaisRes]) => {
+        setClientes(clientesRes.dados);
+        setProfissionais(profissionaisRes.dados);
+      })
       .catch((err) =>
-        setErroAtendimento(err instanceof Error ? err.message : 'Não foi possível carregar os clientes.')
+        setErroAtendimento(err instanceof Error ? err.message : 'Não foi possível carregar os dados do atendimento.')
       )
       .finally(() => setCarregandoClientes(false));
   }
@@ -149,8 +160,8 @@ export default function Atendimentos() {
   async function handleAdicionarAtendimento(e: FormEvent) {
     e.preventDefault();
 
-    if (clienteSelecionado === '' || veiculoSelecionado === '') {
-      setErroAtendimento('Selecione um cliente e um veículo.');
+    if (clienteSelecionado === '' || veiculoSelecionado === '' || profissionalSelecionado === '') {
+      setErroAtendimento('Selecione um cliente, um veículo e o profissional responsável.');
       return;
     }
 
@@ -160,7 +171,12 @@ export default function Atendimentos() {
     try {
       await apiFetch('/api/atendimentos', {
         method: 'POST',
-        body: JSON.stringify({ idCliente: clienteSelecionado, idVeiculo: veiculoSelecionado, urgencia })
+        body: JSON.stringify({
+          idCliente: clienteSelecionado,
+          idVeiculo: veiculoSelecionado,
+          idFuncionario: profissionalSelecionado,
+          urgencia
+        })
       });
       adicionarDialogRef.current?.close();
       setModalAdicionarAberto(false);
@@ -621,6 +637,24 @@ export default function Atendimentos() {
                 <option value="alta">Alta</option>
               </select>
               <small className="field__hint">Use alta somente para casos que precisam ser priorizados.</small>
+            </div>
+
+            <div className="field">
+              <label htmlFor="atendimento-profissional">Profissional responsável</label>
+              <select
+                id="atendimento-profissional"
+                value={profissionalSelecionado}
+                onChange={(e) => setProfissionalSelecionado(e.target.value ? Number(e.target.value) : '')}
+                disabled={carregandoClientes}
+                required
+              >
+                <option value="">Selecione um profissional</option>
+                {profissionais.map((profissional) => (
+                  <option key={profissional.id} value={profissional.id}>
+                    {profissional.nome} — {profissional.cargo}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {erroAtendimento && <Feedback type="error" message={erroAtendimento} />}

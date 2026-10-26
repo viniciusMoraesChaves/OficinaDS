@@ -32,6 +32,11 @@ async function search(req, res) {
   });
 }
 
+async function listarOpcoes(req, res) {
+  const funcionarios = await funcionariosRepository.listarAtivos();
+  res.json({ dados: funcionarios });
+}
+
 async function updateCargo(req, res) {
   const idFuncionario = Number(req.params.id);
   const idCargo = Number(req.body.idCargo);
@@ -138,4 +143,4 @@ async function criar(req, res) {
   });
 }
 
-module.exports = { search, updateCargo, criar };
+module.exports = { search, listarOpcoes, updateCargo, criar };

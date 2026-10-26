@@ -13,6 +13,7 @@ const { PERFIS } = require('../utils/perfis');
 async function criarAtendimento(req, res) {
   const idCliente = Number(req.body.idCliente);
   const idVeiculo = Number(req.body.idVeiculo);
+  const idFuncionario = Number(req.body.idFuncionario);
   const urgencia = validarUrgencia(req.body.urgencia);
 
   if (!Number.isInteger(idCliente) || idCliente <= 0) {
@@ -21,6 +22,9 @@ async function criarAtendimento(req, res) {
 
   if (!Number.isInteger(idVeiculo) || idVeiculo <= 0) {
     return res.status(400).json({ mensagem: 'Veículo inválido.' });
+  }
+  if (!Number.isInteger(idFuncionario) || idFuncionario <= 0) {
+    return res.status(400).json({ mensagem: 'Selecione o profissional responsável.' });
   }
 
   const cliente = await clientesRepository.findById(idCliente);
@@ -40,16 +44,15 @@ async function criarAtendimento(req, res) {
     });
   }
 
-  // Quem não tem registro de funcionário pode abrir atendimentos
-  // sem atribuir um responsável.
-  const funcionario = await funcionariosRepository.findByUsuarioId(
-    req.usuarioLogado.id
-  );
+  const funcionario = await funcionariosRepository.findAtivoById(idFuncionario);
+  if (!funcionario) {
+    return res.status(404).json({ mensagem: 'Profissional não encontrado ou inativo.' });
+  }
 
   const atendimento = await orcamentosRepository.criarAtendimento({
     idCliente,
     idVeiculo,
-    idFuncionario: funcionario ? funcionario.id : null,
+    idFuncionario: funcionario.id,
     urgencia
   });
 
