@@ -76,6 +76,15 @@ async function login(req, res, next) {
 async function cadastrar(req, res, next) {
   try {
     const { tipoAcesso } = req.body;
+
+    // Em produção, só clientes se cadastram sozinhos (CADASTRO_OFICINA_PUBLICO=false).
+    if (tipoAcesso !== 'cliente' && !env.cadastroOficinaPublico) {
+      return res.status(403).json({
+        erro: 'CADASTRO_DESATIVADO',
+        mensagem: 'O cadastro público de equipe está desativado. Peça a um Administrador para criar a sua conta.'
+      });
+    }
+
     const email = exigirEmail(req.body.email);
     const senha = exigirSenha(req.body.senha);
     const nome = exigirTexto(req.body.nome, 'Informe o seu nome.');
