@@ -3,10 +3,16 @@ const clientesRepository = require('../repositories/clientesRepository');
 const funcionariosRepository = require('../repositories/funcionariosRepository');
 const { parseId } = require('../utils/queryParams');
 const { validarDecisao } = require('../utils/statusOrcamento');
+const {
+  validarUrgencia,
+  normalizarFiltroUrgencia,
+  validarOrdenacaoUrgencia
+} = require('../utils/urgencia');
 
 async function criarAtendimento(req, res) {
   const idCliente = Number(req.body.idCliente);
   const idVeiculo = Number(req.body.idVeiculo);
+  const urgencia = validarUrgencia(req.body.urgencia);
 
   if (!Number.isInteger(idCliente) || idCliente <= 0) {
     return res.status(400).json({ mensagem: 'Cliente inválido.' });
@@ -32,15 +38,35 @@ async function criarAtendimento(req, res) {
   const atendimento = await orcamentosRepository.criarAtendimento({
     idCliente,
     idVeiculo,
-    idFuncionario: funcionario ? funcionario.id : null
+    idFuncionario: funcionario ? funcionario.id : null,
+    urgencia
   });
 
   res.status(201).json({ dados: atendimento });
 }
 
 async function listarAtendimentos(req, res) {
-  const atendimentos = await orcamentosRepository.listarAtendimentosAbertos();
+  const urgencia = normalizarFiltroUrgencia(req.query.urgencia);
+  const ordenacao = validarOrdenacaoUrgencia(req.query.ordenacao);
+  const atendimentos = await orcamentosRepository.listarAtendimentosAbertos({ urgencia, ordenacao });
   res.json({ dados: atendimentos });
+}
+
+async function atualizarUrgencia(req, res) {
+  const idAtendimento = parseId(req.params.id);
+  const urgencia = validarUrgencia(req.body.urgencia, '');
+  const atendimento = await orcamentosRepository.buscarAtendimentoPorId(idAtendimento);
+
+  if (!atendimento) {
+    return res.status(404).json({ mensagem: 'Atendimento não encontrado.' });
+  }
+
+  const atualizado = await orcamentosRepository.atualizarUrgencia(idAtendimento, urgencia);
+  if (!atualizado) {
+    return res.status(409).json({ mensagem: 'Somente atendimentos abertos podem ser alterados.' });
+  }
+
+  res.json({ mensagem: 'Urgência atualizada.', dados: { id: idAtendimento, urgencia } });
 }
 
 async function removerAtendimento(req, res) {
@@ -168,6 +194,7 @@ async function decidirOrcamento(req, res) {
 module.exports = {
   criarAtendimento,
   listarAtendimentos,
+  atualizarUrgencia,
   removerAtendimento,
   criarOrcamento,
   obterOrcamento,

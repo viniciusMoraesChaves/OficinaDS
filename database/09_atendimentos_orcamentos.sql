@@ -1,4 +1,4 @@
--- OficinaOS | Aceitar ou recusar orçamento
+-- OficinaDS | Aceitar ou recusar orçamento
 -- Modelo de atendimento, orçamento e itens de custo do orçamento.
 -- Execute após 07_perfil_cliente.sql.
 

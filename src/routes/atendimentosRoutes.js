@@ -9,6 +9,7 @@ const equipe = protegerRota(PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO);
 
 router.get('/', equipe, orcamentosController.listarAtendimentos);
 router.post('/', equipe, orcamentosController.criarAtendimento);
+router.patch('/:id/urgencia', equipe, orcamentosController.atualizarUrgencia);
 router.delete('/:id', equipe, orcamentosController.removerAtendimento);
 router.post('/:id/orcamento', equipe, orcamentosController.criarOrcamento);
 

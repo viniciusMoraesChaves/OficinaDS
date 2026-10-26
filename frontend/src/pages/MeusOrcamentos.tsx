@@ -24,7 +24,7 @@ export default function MeusOrcamentos() {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    document.title = 'OficinaOS | Meus orçamentos';
+    document.title = 'OficinaDS | Meus orçamentos';
   }, []);
 
   function carregarLista() {
@@ -81,7 +81,7 @@ export default function MeusOrcamentos() {
     <Layout
       title="Meus orçamentos"
       subtitle="Acompanhe e decida os orçamentos enviados pela oficina"
-      documentTitle="OficinaOS | Meus orçamentos"
+      documentTitle="OficinaDS | Meus orçamentos"
     >
       {loading && <Feedback type="loading" message="Carregando orçamentos..." />}
       {erro && <Feedback type="error" message={erro} />}

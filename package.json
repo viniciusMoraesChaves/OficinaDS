@@ -2,13 +2,16 @@
   "name": "oficina-dm67-dm100",
   "version": "1.0.0",
   "private": true,
-  "description": "Módulo da OficinaOS para consultar clientes e pesquisar funcionários.",
+  "description": "Módulo da OficinaDS para consultar clientes e pesquisar funcionários.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "node --test",
-    "check": "node --check src/server.js && node --check src/app.js && node --check public/assets/js/clientes.js && node --check public/assets/js/funcionarios.js"
+    "check": "node --check src/server.js && node --check src/app.js",
+    "db:preparar": "node scripts/preparar-banco.js",
+    "db:demo": "node scripts/criar-usuarios-demo.js",
+    "build:frontend": "npm --prefix frontend install --include=dev && npm --prefix frontend run build"
   },
   "engines": {
     "node": ">=20"

@@ -74,7 +74,7 @@ export default function Clientes() {
     <Layout
       title="Clientes"
       subtitle="Cadastro e relacionamento com veículos"
-      documentTitle="OficinaOS | Consultar clientes"
+      documentTitle="OficinaDS | Consultar clientes"
     >
       <section className="intro">
         <div>

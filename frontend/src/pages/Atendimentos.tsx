@@ -4,7 +4,8 @@ import { Feedback } from '../components/Feedback';
 import { apiFetch } from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import type { ClienteOpcao } from '../types/cliente';
-import type { AtendimentoAberto, ItemOrcamentoForm, OrcamentoEquipe, StatusOrcamento } from '../types/orcamento';
+import type { AtendimentoAberto, ItemOrcamentoForm, OrcamentoEquipe, StatusOrcamento, UrgenciaAtendimento } from '../types/orcamento';
+import { useSearchParams } from 'react-router-dom';
 
 const STATUS_LABEL: Record<StatusOrcamento, string> = {
   rascunho: 'Rascunho',
@@ -14,6 +15,12 @@ const STATUS_LABEL: Record<StatusOrcamento, string> = {
 };
 
 const INTERVALO_ATUALIZACAO_MS = 10000;
+
+const URGENCIA_LABEL: Record<UrgenciaAtendimento, string> = {
+  baixa: 'Baixa',
+  media: 'Média',
+  alta: 'Alta'
+};
 
 export default function Atendimentos() {
   const [atendimentos, setAtendimentos] = useState<AtendimentoAberto[]>([]);
@@ -30,6 +37,9 @@ export default function Atendimentos() {
   const [veiculoSelecionado, setVeiculoSelecionado] = useState<number | ''>('');
   const [salvandoAtendimento, setSalvandoAtendimento] = useState(false);
   const [erroAtendimento, setErroAtendimento] = useState('');
+  const [urgencia, setUrgencia] = useState<UrgenciaAtendimento>('media');
+  const [filtroUrgencia, setFiltroUrgencia] = useState('todas');
+  const [ordenacao, setOrdenacao] = useState('prioridade');
 
   // --- orçamento ---
   const orcamentoDialogRef = useRef<HTMLDialogElement>(null);
@@ -56,17 +66,18 @@ export default function Atendimentos() {
     setErro('');
 
     try {
-      const { dados } = await apiFetch<{ dados: AtendimentoAberto[] }>('/api/atendimentos');
+      const params = new URLSearchParams({ urgencia: filtroUrgencia, ordenacao });
+      const { dados } = await apiFetch<{ dados: AtendimentoAberto[] }>(`/api/atendimentos?${params}`);
       setAtendimentos(dados);
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Erro ao carregar atendimentos.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filtroUrgencia, ordenacao]);
 
   useEffect(() => {
-    document.title = 'OficinaOS | Atendimentos';
+    document.title = 'OficinaDS | Atendimentos';
     carregarAtendimentos();
     carregarOrcamentos();
 
@@ -87,10 +98,22 @@ export default function Atendimentos() {
 
   const clienteDetalhe = clientes.find((c) => c.id === clienteSelecionado) ?? null;
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Atalho do painel inicial: /atendimentos?novo=1 abre o formulário.
+  useEffect(() => {
+    if (searchParams.get('novo') === '1') {
+      abrirModalAdicionar();
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function abrirModalAdicionar() {
     setClienteSelecionado('');
     setVeiculoSelecionado('');
     setErroAtendimento('');
+    setUrgencia('media');
     setClientes([]);
     setCarregandoClientes(true);
     setModalAdicionarAberto(true);
@@ -123,7 +146,7 @@ export default function Atendimentos() {
     try {
       await apiFetch('/api/atendimentos', {
         method: 'POST',
-        body: JSON.stringify({ idCliente: clienteSelecionado, idVeiculo: veiculoSelecionado })
+        body: JSON.stringify({ idCliente: clienteSelecionado, idVeiculo: veiculoSelecionado, urgencia })
       });
       adicionarDialogRef.current?.close();
       setModalAdicionarAberto(false);
@@ -232,7 +255,7 @@ export default function Atendimentos() {
     <Layout
       title="Atendimentos"
       subtitle="Clientes sendo atendidos na oficina agora"
-      documentTitle="OficinaOS | Atendimentos"
+      documentTitle="OficinaDS | Atendimentos"
     >
       <section className="intro">
         <div>
@@ -251,6 +274,25 @@ export default function Atendimentos() {
       {erro && <Feedback type="error" message={erro} />}
       {loading && <Feedback type="loading" message="Carregando atendimentos..." />}
 
+      <section className="search-panel atendimento-filtros" aria-label="Filtros dos atendimentos">
+        <div className="field">
+          <label htmlFor="filtro-urgencia">Urgência</label>
+          <select id="filtro-urgencia" value={filtroUrgencia} onChange={(e) => setFiltroUrgencia(e.target.value)}>
+            <option value="todas">Todas</option>
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="ordenacao-urgencia">Ordenar por</label>
+          <select id="ordenacao-urgencia" value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)}>
+            <option value="prioridade">Maior urgência</option>
+            <option value="recentes">Mais recentes</option>
+          </select>
+        </div>
+      </section>
+
       <section className="panel" aria-labelledby="atendimentos-list-title">
         <header className="panel__header">
           <div>
@@ -266,6 +308,7 @@ export default function Atendimentos() {
                 <th scope="col">Cliente</th>
                 <th scope="col">Veículo</th>
                 <th scope="col">Responsável</th>
+                <th scope="col">Urgência</th>
                 <th scope="col">Desde</th>
                 <th scope="col"><span className="visually-hidden">Ações</span></th>
               </tr>
@@ -273,7 +316,7 @@ export default function Atendimentos() {
             <tbody>
               {!loading && atendimentos.length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={5}>
+                  <td className="empty-cell" colSpan={6}>
                     Nenhum cliente em atendimento no momento.
                   </td>
                 </tr>
@@ -284,6 +327,7 @@ export default function Atendimentos() {
                   <td>{a.clienteNome}</td>
                   <td className="nowrap">{a.placa} — {a.marca} {a.modelo}</td>
                   <td>{a.funcionarioNome}</td>
+                  <td><span className={`urgencia-badge urgencia-badge--${a.urgencia}`}>{URGENCIA_LABEL[a.urgencia]}</span></td>
                   <td className="nowrap">{formatDateTime(a.criadoEm)}</td>
                   <td className="align-right">
                     <button
@@ -404,6 +448,20 @@ export default function Atendimentos() {
                   ))
                 )}
               </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="atendimento-urgencia">Urgência</label>
+              <select
+                id="atendimento-urgencia"
+                value={urgencia}
+                onChange={(e) => setUrgencia(e.target.value as UrgenciaAtendimento)}
+              >
+                <option value="baixa">Baixa</option>
+                <option value="media">Média</option>
+                <option value="alta">Alta</option>
+              </select>
+              <small className="field__hint">Use alta somente para casos que precisam ser priorizados.</small>
             </div>
 
             {erroAtendimento && <Feedback type="error" message={erroAtendimento} />}

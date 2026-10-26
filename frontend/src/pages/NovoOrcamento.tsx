@@ -32,7 +32,7 @@ export default function NovoOrcamento() {
   const [orcamentoEnviado, setOrcamentoEnviado] = useState(false);
 
   useEffect(() => {
-    document.title = 'OficinaOS | Novo orçamento';
+    document.title = 'OficinaDS | Novo orçamento';
   }, []);
 
   useEffect(() => {
@@ -128,7 +128,7 @@ export default function NovoOrcamento() {
     <Layout
       title="Novo orçamento"
       subtitle="Registrar atendimento e montar o orçamento"
-      documentTitle="OficinaOS | Novo orçamento"
+      documentTitle="OficinaDS | Novo orçamento"
     >
       {loading && <Feedback type="loading" message="Carregando dados do cliente..." />}
       {erro && <Feedback type="error" message={erro} />}

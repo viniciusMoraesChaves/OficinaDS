@@ -10,39 +10,50 @@ type LayoutProps = {
   children: ReactNode;
 };
 
-type LinkItem = { to: string; label: string; icon: string; end: boolean };
+type LinkItem = { to: string; label: string; icon: string; end?: boolean };
+type Grupo = { titulo?: string; links: LinkItem[] };
 
-const linksPorPerfil: Record<Perfil, LinkItem[]> = {
-  [PERFIS.ADMINISTRADOR]: [
-    { to: '/', label: 'Início', icon: '⌂', end: true },
-    { to: '/atendimentos', label: 'Atendimentos', icon: '🔧', end: false },
-    { to: '/veiculos', label: 'Veículos', icon: '🚗', end: false },
-    { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
-    { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕', end: false },
-    { to: '/agendamentos', label: 'Agendamentos', icon: '◷', end: false },
-    { to: '/funcionarios', label: 'Funcionários', icon: '⚙', end: false },
-    { to: '/usuarios', label: 'Usuários', icon: '☺', end: false },
-    { to: '/financeiro', label: 'Financeiro', icon: '$', end: false },
-  ],
-  [PERFIS.FUNCIONARIO]: [
-    { to: '/', label: 'Início', icon: '⌂', end: true },
-    { to: '/atendimentos', label: 'Atendimentos', icon: '🔧', end: false },
-    { to: '/veiculos', label: 'Veículos', icon: '🚗', end: false },
-    { to: '/clientes', label: 'Clientes', icon: '♙', end: false },
-    { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕', end: false },
-    { to: '/agendamentos', label: 'Agendamentos', icon: '◷', end: false },
-  ],
+const inicio: LinkItem = { to: '/', label: 'Início', icon: '⌂', end: true };
+
+const operacao: Grupo = {
+  titulo: 'Operação',
+  links: [
+    { to: '/atendimentos', label: 'Atendimentos', icon: '🔧' },
+    { to: '/agendamentos', label: 'Agendamentos', icon: '◷' },
+    { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕' }
+  ]
+};
+
+const cadastros: Grupo = {
+  titulo: 'Cadastros',
+  links: [
+    { to: '/clientes', label: 'Clientes', icon: '♙' },
+    { to: '/veiculos', label: 'Veículos', icon: '🚗' },
+    { to: '/estoque', label: 'Estoque', icon: '▤' }
+  ]
+};
+
+const administracao: Grupo = {
+  titulo: 'Administração',
+  links: [
+    { to: '/funcionarios', label: 'Funcionários', icon: '⚙' },
+    { to: '/usuarios', label: 'Usuários', icon: '☺' },
+    { to: '/financeiro', label: 'Financeiro', icon: '$' }
+  ]
+};
+
+const gruposPorPerfil: Record<Perfil, Grupo[]> = {
+  [PERFIS.ADMINISTRADOR]: [{ links: [inicio] }, operacao, cadastros, administracao],
+  [PERFIS.FUNCIONARIO]: [{ links: [inicio] }, operacao, cadastros],
   [PERFIS.CLIENTE]: [
-    { to: '/', label: 'Início', icon: '⌂', end: true },
-    { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: '🧾', end: false },
-    { to: '/meus-agendamentos', label: 'Meus agendamentos', icon: '◷', end: false },
-  ],
+    { links: [inicio, { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: '🧾' }] }
+  ]
 };
 
 export function Layout({ title, subtitle, documentTitle, children }: LayoutProps) {
   const [open, setOpen] = useState(false);
   const { perfil, logout } = useAuth();
-  const links = perfil ? linksPorPerfil[perfil] : [];
+  const grupos = perfil ? gruposPorPerfil[perfil] : [];
 
   useEffect(() => {
     document.title = documentTitle;
@@ -59,19 +70,23 @@ export function Layout({ title, subtitle, documentTitle, children }: LayoutProps
           </span>
         </Link>
 
-        <p className="sidebar__section-label">Seu módulo</p>
         <nav className="sidebar__nav">
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
-              className={({ isActive }) => `sidebar__link ${isActive ? 'is-active' : ''}`}
-              onClick={() => setOpen(false)}
-            >
-              <span className="sidebar__icon" aria-hidden="true">{link.icon}</span>
-              {link.label}
-            </NavLink>
+          {grupos.map((grupo, indice) => (
+            <div key={grupo.titulo ?? `grupo-${indice}`}>
+              {grupo.titulo && <p className="sidebar__section-label">{grupo.titulo}</p>}
+              {grupo.links.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.end ?? false}
+                  className={({ isActive }) => `sidebar__link ${isActive ? 'is-active' : ''}`}
+                  onClick={() => setOpen(false)}
+                >
+                  <span className="sidebar__icon" aria-hidden="true">{link.icon}</span>
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -80,7 +95,6 @@ export function Layout({ title, subtitle, documentTitle, children }: LayoutProps
             <span className="avatar">{(perfil ?? '?').slice(0, 2).toUpperCase()}</span>
             <span className="sidebar__user-copy">
               <strong>{perfil ?? 'Sem perfil'}</strong>
-              <small>Sprint atual</small>
             </span>
           </div>
           <button className="sidebar__logout" type="button" onClick={logout}>

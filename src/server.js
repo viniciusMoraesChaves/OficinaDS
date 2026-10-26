@@ -8,7 +8,7 @@ async function start() {
     console.log('✓ Conexão com o MySQL estabelecida.');
 
     const server = app.listen(env.port, () => {
-      console.log(`✓ OficinaOS disponível em http://localhost:${env.port}`);
+      console.log(`✓ OficinaDS disponível em http://localhost:${env.port}`);
     });
 
     async function shutdown(signal) {

@@ -1,4 +1,4 @@
--- OficinaOS | Permite que a aplicação cadastre novos funcionários
+-- OficinaDS | Permite que a aplicação cadastre novos funcionários
 -- (tela Funcionários > Novo funcionário, feita pelo Administrador).
 
 USE oficina_ds;

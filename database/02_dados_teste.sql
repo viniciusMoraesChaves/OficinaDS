@@ -1,4 +1,4 @@
--- OficinaOS | Dados fictícios para estudar e demonstrar as duas histórias
+-- OficinaDS | Dados fictícios para estudar e demonstrar as duas histórias
 -- Pode executar novamente: as chaves fixas impedem duplicação.
 
 USE oficina_ds;

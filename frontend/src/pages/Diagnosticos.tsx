@@ -6,6 +6,7 @@ import type {
   Diagnostico,
   OpcoesDiagnostico,
 } from '../types/diagnostico';
+import '../styles/diagnosticos-pendentes.css';
 
 type FormState = {
   ordemId: string;
@@ -50,6 +51,13 @@ export default function Diagnosticos() {
   const [form, setForm] = useState<FormState>(FORM_VAZIO);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  // Ordens ligadas a um atendimento que ainda não têm diagnóstico registrado.
+  const ordensPendentes = opcoes.ordens.filter(
+    (ordem) =>
+      ordem.atendimentoId != null &&
+      !diagnosticos.some((diagnostico) => diagnostico.ordemId === ordem.id)
+  );
+
   const carregarDados = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -87,6 +95,14 @@ export default function Diagnosticos() {
   function abrirNovo() {
     setDiagnosticoEditando(null);
     setForm(FORM_VAZIO);
+    setFormError('');
+    setSuccess('');
+    setModalAberto(true);
+  }
+
+  function abrirNovoParaOrdem(ordemId: number) {
+    setDiagnosticoEditando(null);
+    setForm({ ...FORM_VAZIO, ordemId: String(ordemId) });
     setFormError('');
     setSuccess('');
     setModalAberto(true);
@@ -190,12 +206,11 @@ export default function Diagnosticos() {
     <Layout
       title="Diagnósticos"
       subtitle="Registros técnicos das ordens de serviço"
-      documentTitle="OficinaDS | Registrar diagnóstico"
+      documentTitle="OficinaDS | Diagnósticos"
     >
       <section className="intro">
         <div>
-          <span className="story-label">DM-180</span>
-          <h2>Registrar diagnóstico</h2>
+          <h2>Diagnósticos dos veículos</h2>
           <p>
             Consulte os problemas identificados nos veículos, registre um novo
             diagnóstico ou edite um registro existente.
@@ -206,6 +221,40 @@ export default function Diagnosticos() {
           + Novo diagnóstico
         </button>
       </section>
+
+      {ordensPendentes.length > 0 && (
+        <section className="panel" aria-labelledby="diagnosticos-pendentes-title">
+          <header className="panel__header">
+            <div>
+              <h3 id="diagnosticos-pendentes-title">Aguardando diagnóstico</h3>
+              <p>
+                {ordensPendentes.length} atendimento{ordensPendentes.length === 1 ? '' : 's'} sem
+                diagnóstico técnico registrado
+              </p>
+            </div>
+          </header>
+
+          <ul className="diagnosticos-pendentes">
+            {ordensPendentes.map((ordem) => (
+              <li key={ordem.id}>
+                <span>
+                  <strong>{ordem.cliente}</strong>
+                  <small>
+                    {ordem.marca} {ordem.modelo} • {ordem.placa} • OS-{ordem.id}
+                  </small>
+                </span>
+                <button
+                  className="button button--primary button--small"
+                  type="button"
+                  onClick={() => abrirNovoParaOrdem(ordem.id)}
+                >
+                  Registrar diagnóstico
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="panel" aria-labelledby="diagnosticos-list-title">
         <header className="panel__header">

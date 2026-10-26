@@ -32,6 +32,7 @@ async function findOptions() {
        os.id_ordem AS id,
        os.status,
        os.descricao_problema AS problemaRelatado,
+       os.id_atendimento AS atendimentoId,
        c.nome AS cliente,
        v.placa,
        v.marca,

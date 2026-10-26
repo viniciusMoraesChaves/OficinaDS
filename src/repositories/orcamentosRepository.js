@@ -8,16 +8,16 @@ async function veiculoPertenceAoCliente(idVeiculo, idCliente) {
   return rows.length > 0;
 }
 
-async function criarAtendimento({ idCliente, idVeiculo, idFuncionario }) {
+async function criarAtendimento({ idCliente, idVeiculo, idFuncionario, urgencia = 'media' }) {
   const connection = await pool.getConnection();
 
   try {
     await connection.beginTransaction();
 
     const [resultado] = await connection.execute(
-      `INSERT INTO atendimento (id_cliente, id_veiculo, id_funcionario, status)
-       VALUES (?, ?, ?, 'aberto')`,
-      [idCliente, idVeiculo, idFuncionario]
+      `INSERT INTO atendimento (id_cliente, id_veiculo, id_funcionario, status, urgencia)
+       VALUES (?, ?, ?, 'aberto', ?)`,
+      [idCliente, idVeiculo, idFuncionario, urgencia]
     );
 
     // Todo atendimento gera a ordem de serviço usada pelos diagnósticos.
@@ -29,7 +29,7 @@ async function criarAtendimento({ idCliente, idVeiculo, idFuncionario }) {
     );
 
     await connection.commit();
-    return { id: resultado.insertId, idCliente, idVeiculo, idFuncionario, status: 'aberto' };
+    return { id: resultado.insertId, idCliente, idVeiculo, idFuncionario, status: 'aberto', urgencia };
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -38,11 +38,18 @@ async function criarAtendimento({ idCliente, idVeiculo, idFuncionario }) {
   }
 }
 
-async function listarAtendimentosAbertos() {
+async function listarAtendimentosAbertos({ urgencia = '', ordenacao = 'prioridade' } = {}) {
+  const filtroUrgencia = urgencia ? 'AND a.urgencia = ?' : '';
+  const parametros = urgencia ? [urgencia] : [];
+  const ordem = ordenacao === 'recentes'
+    ? 'a.criado_em DESC, a.id_atendimento DESC'
+    : "FIELD(a.urgencia, 'alta', 'media', 'baixa'), a.criado_em ASC";
+
   const [rows] = await pool.execute(
     `SELECT
        a.id_atendimento AS id,
        a.status,
+       a.urgencia,
        a.criado_em AS criadoEm,
        c.id_cliente AS idCliente,
        c.nome AS clienteNome,
@@ -57,9 +64,21 @@ async function listarAtendimentosAbertos() {
      INNER JOIN veiculo v ON v.id_veiculo = a.id_veiculo
      LEFT JOIN funcionario f ON f.id_funcionario = a.id_funcionario
      WHERE a.status = 'aberto'
-     ORDER BY a.criado_em DESC`
+     ${filtroUrgencia}
+     ORDER BY ${ordem}`,
+    parametros
   );
   return rows;
+}
+
+async function atualizarUrgencia(idAtendimento, urgencia) {
+  const [resultado] = await pool.execute(
+    `UPDATE atendimento
+     SET urgencia = ?
+     WHERE id_atendimento = ? AND status = 'aberto'`,
+    [urgencia, idAtendimento]
+  );
+  return resultado.affectedRows > 0;
 }
 
 async function buscarAtendimentoPorId(idAtendimento) {
@@ -230,6 +249,7 @@ module.exports = {
   veiculoPertenceAoCliente,
   criarAtendimento,
   listarAtendimentosAbertos,
+  atualizarUrgencia,
   buscarAtendimentoPorId,
   cancelarAtendimento,
   criarOrcamento,
