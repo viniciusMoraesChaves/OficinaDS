@@ -1246,3 +1246,42 @@ a {
 .slot-hint {
   text-align: left;
 }
+
+.atendimento-filtros {
+  grid-template-columns: minmax(180px, 240px) minmax(180px, 240px);
+  margin-bottom: 18px;
+}
+
+.urgencia-badge {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.urgencia-badge--baixa {
+  color: #1f6b3a;
+  background: #e6f4ea;
+}
+
+.urgencia-badge--media {
+  color: #8a5a00;
+  background: #fdf1d6;
+}
+
+.urgencia-badge--alta {
+  color: #8b2f2f;
+  background: #fbe9e7;
+}
+
+.field__hint {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .atendimento-filtros {
+    grid-template-columns: 1fr;
+  }
+}

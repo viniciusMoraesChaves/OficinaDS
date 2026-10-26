@@ -1,4 +1,5 @@
 export type StatusOrcamento = 'rascunho' | 'enviado' | 'aceito' | 'recusado';
+export type UrgenciaAtendimento = 'baixa' | 'media' | 'alta';
 
 export type ItemOrcamento = {
   id: number;
@@ -14,6 +15,7 @@ export type ItemOrcamentoForm = {
 export type AtendimentoAberto = {
   id: number;
   status: string;
+  urgencia: UrgenciaAtendimento;
   criadoEm: string;
   idCliente: number;
   clienteNome: string;
