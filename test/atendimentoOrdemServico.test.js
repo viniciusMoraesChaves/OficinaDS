@@ -59,7 +59,7 @@ test('cancelarAtendimento cancela e encerra a ordem quando não há orçamento a
   const resultado = await orcamentosRepository.cancelarAtendimento(42);
 
   assert.equal(resultado, true);
-  assert.match(calls[0].sql, /SELECT 1 FROM orcamento/);
+  assert.match(calls[0].sql, /SELECT\s+1\s+FROM\s+orcamento/);
   assert.deepEqual(calls[1].params, ['cancelado', 42]);
   assert.match(calls[2].sql, /UPDATE ordem_servico/);
   assert.deepEqual(calls[2].params, [42]);
