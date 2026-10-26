@@ -25,6 +25,8 @@ export type AtendimentoAberto = {
   modelo: string;
   idFuncionario: number | null;
   funcionarioNome: string;
+  etapaAtual: string | null;
+  previsaoConclusao: string | null;
 };
 
 export type Atendimento = {

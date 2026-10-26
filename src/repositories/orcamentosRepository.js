@@ -5,17 +5,24 @@ async function veiculoPertenceAoCliente(idVeiculo, idCliente) {
     'SELECT id_veiculo FROM veiculo WHERE id_veiculo = ? AND id_cliente = ?',
     [idVeiculo, idCliente]
   );
+
   return rows.length > 0;
 }
 
-async function criarAtendimento({ idCliente, idVeiculo, idFuncionario, urgencia = 'media' }) {
+async function criarAtendimento({
+  idCliente,
+  idVeiculo,
+  idFuncionario,
+  urgencia = 'media'
+}) {
   const connection = await pool.getConnection();
 
   try {
     await connection.beginTransaction();
 
     const [resultado] = await connection.execute(
-      `INSERT INTO atendimento (id_cliente, id_veiculo, id_funcionario, status, urgencia)
+      `INSERT INTO atendimento
+         (id_cliente, id_veiculo, id_funcionario, status, urgencia)
        VALUES (?, ?, ?, 'aberto', ?)`,
       [idCliente, idVeiculo, idFuncionario, urgencia]
     );
@@ -23,13 +30,28 @@ async function criarAtendimento({ idCliente, idVeiculo, idFuncionario, urgencia 
     // Todo atendimento gera a ordem de serviço usada pelos diagnósticos.
     await connection.execute(
       `INSERT INTO ordem_servico
-         (id_cliente, id_veiculo, id_funcionario, id_atendimento, status, descricao_problema)
+         (id_cliente, id_veiculo, id_funcionario, id_atendimento,
+          status, descricao_problema)
        VALUES (?, ?, ?, ?, 'Aberta', ?)`,
-      [idCliente, idVeiculo, idFuncionario, resultado.insertId, `Atendimento #${resultado.insertId}`]
+      [
+        idCliente,
+        idVeiculo,
+        idFuncionario,
+        resultado.insertId,
+        `Atendimento #${resultado.insertId}`
+      ]
     );
 
     await connection.commit();
-    return { id: resultado.insertId, idCliente, idVeiculo, idFuncionario, status: 'aberto', urgencia };
+
+    return {
+      id: resultado.insertId,
+      idCliente,
+      idVeiculo,
+      idFuncionario,
+      status: 'aberto',
+      urgencia
+    };
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -38,9 +60,13 @@ async function criarAtendimento({ idCliente, idVeiculo, idFuncionario, urgencia 
   }
 }
 
-async function listarAtendimentosAbertos({ urgencia = '', ordenacao = 'prioridade' } = {}) {
+async function listarAtendimentosAbertos({
+  urgencia = '',
+  ordenacao = 'prioridade'
+} = {}) {
   const filtroUrgencia = urgencia ? 'AND a.urgencia = ?' : '';
   const parametros = urgencia ? [urgencia] : [];
+
   const ordem = ordenacao === 'recentes'
     ? 'a.criado_em DESC, a.id_atendimento DESC'
     : "FIELD(a.urgencia, 'alta', 'media', 'baixa'), a.criado_em ASC";
@@ -58,16 +84,24 @@ async function listarAtendimentosAbertos({ urgencia = '', ordenacao = 'prioridad
        v.marca,
        v.modelo,
        f.id_funcionario AS idFuncionario,
+       os.status AS etapaAtual,
+       os.previsao_conclusao AS previsaoConclusao,
        COALESCE(f.nome, 'Equipe') AS funcionarioNome
      FROM atendimento a
-     INNER JOIN cliente c ON c.id_cliente = a.id_cliente
-     INNER JOIN veiculo v ON v.id_veiculo = a.id_veiculo
-     LEFT JOIN funcionario f ON f.id_funcionario = a.id_funcionario
+     INNER JOIN cliente c
+       ON c.id_cliente = a.id_cliente
+     INNER JOIN veiculo v
+       ON v.id_veiculo = a.id_veiculo
+     LEFT JOIN funcionario f
+       ON f.id_funcionario = a.id_funcionario
+     LEFT JOIN ordem_servico os
+       ON os.id_atendimento = a.id_atendimento
      WHERE a.status = 'aberto'
-     ${filtroUrgencia}
+       ${filtroUrgencia}
      ORDER BY ${ordem}`,
     parametros
   );
+
   return rows;
 }
 
@@ -75,41 +109,89 @@ async function atualizarUrgencia(idAtendimento, urgencia) {
   const [resultado] = await pool.execute(
     `UPDATE atendimento
      SET urgencia = ?
-     WHERE id_atendimento = ? AND status = 'aberto'`,
+     WHERE id_atendimento = ?
+       AND status = 'aberto'`,
     [urgencia, idAtendimento]
   );
+
   return resultado.affectedRows > 0;
+}
+
+async function listarAtendimentosPorCliente(idCliente) {
+  const [rows] = await pool.execute(
+    `SELECT
+       a.id_atendimento AS id,
+       a.status,
+       a.criado_em AS criadoEm,
+       v.id_veiculo AS idVeiculo,
+       v.placa,
+       v.marca,
+       v.modelo,
+       os.status AS etapaAtual,
+       os.previsao_conclusao AS previsaoConclusao
+     FROM atendimento a
+     INNER JOIN veiculo v
+       ON v.id_veiculo = a.id_veiculo
+     LEFT JOIN ordem_servico os
+       ON os.id_atendimento = a.id_atendimento
+     WHERE a.id_cliente = ?
+       AND a.status = 'aberto'
+     ORDER BY a.criado_em DESC`,
+    [idCliente]
+  );
+
+  return rows;
 }
 
 async function buscarAtendimentoPorId(idAtendimento) {
   const [rows] = await pool.execute(
-    'SELECT id_atendimento AS id, id_cliente AS idCliente, id_veiculo AS idVeiculo, id_funcionario AS idFuncionario, status FROM atendimento WHERE id_atendimento = ?',
+    `SELECT
+       id_atendimento AS id,
+       id_cliente AS idCliente,
+       id_veiculo AS idVeiculo,
+       id_funcionario AS idFuncionario,
+       status
+     FROM atendimento
+     WHERE id_atendimento = ?`,
     [idAtendimento]
   );
+
   return rows[0] || null;
 }
 
-// "Remover" um atendimento o encerra: se o cliente aceitou um orçamento, o
-// serviço foi realizado (concluído); caso contrário, o atendimento é cancelado.
+// "Remover" um atendimento o encerra: se o cliente aceitou um
+// orçamento, o serviço foi realizado; caso contrário, é cancelado.
 async function cancelarAtendimento(idAtendimento) {
   const [aceitos] = await pool.execute(
-    `SELECT 1 FROM orcamento WHERE id_atendimento = ? AND status = 'aceito' LIMIT 1`,
+    `SELECT 1
+     FROM orcamento
+     WHERE id_atendimento = ?
+       AND status = 'aceito'
+     LIMIT 1`,
     [idAtendimento]
   );
+
   const realizado = aceitos.length > 0;
 
   const [resultado] = await pool.execute(
-    `UPDATE atendimento SET status = ? WHERE id_atendimento = ? AND status = 'aberto'`,
-    [realizado ? 'concluido' : 'cancelado', idAtendimento]
+    `UPDATE atendimento
+     SET status = ?
+     WHERE id_atendimento = ?
+       AND status = 'aberto'`,
+    [
+      realizado ? 'concluido' : 'cancelado',
+      idAtendimento
+    ]
   );
 
   if (resultado.affectedRows > 0 && !realizado) {
-    // Só o atendimento cancelado deixa de aceitar diagnósticos; o realizado
-    // continua disponível para registrar o diagnóstico.
+    // O atendimento cancelado deixa de aceitar diagnósticos.
     await pool.execute(
       `UPDATE ordem_servico
-       SET status = 'Encerrada', data_fechamento = NOW()
-       WHERE id_atendimento = ? AND data_fechamento IS NULL`,
+       SET status = 'Encerrada',
+           data_fechamento = NOW()
+       WHERE id_atendimento = ?
+         AND data_fechamento IS NULL`,
       [idAtendimento]
     );
   }
@@ -117,16 +199,24 @@ async function cancelarAtendimento(idAtendimento) {
   return resultado.affectedRows > 0;
 }
 
-async function criarOrcamento({ idAtendimento, situacaoVeiculo, itens }) {
+async function criarOrcamento({
+  idAtendimento,
+  situacaoVeiculo,
+  itens
+}) {
   const connection = await pool.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    const valorTotal = itens.reduce((soma, item) => soma + item.valor, 0);
+    const valorTotal = itens.reduce(
+      (soma, item) => soma + item.valor,
+      0
+    );
 
     const [resultadoOrcamento] = await connection.execute(
-      `INSERT INTO orcamento (id_atendimento, situacao_veiculo, valor_total, status)
+      `INSERT INTO orcamento
+         (id_atendimento, situacao_veiculo, valor_total, status)
        VALUES (?, ?, ?, 'rascunho')`,
       [idAtendimento, situacaoVeiculo, valorTotal]
     );
@@ -135,14 +225,23 @@ async function criarOrcamento({ idAtendimento, situacaoVeiculo, itens }) {
 
     for (const item of itens) {
       await connection.execute(
-        'INSERT INTO orcamento_item (id_orcamento, descricao, valor) VALUES (?, ?, ?)',
+        `INSERT INTO orcamento_item
+           (id_orcamento, descricao, valor)
+         VALUES (?, ?, ?)`,
         [idOrcamento, item.descricao, item.valor]
       );
     }
 
     await connection.commit();
 
-    return { id: idOrcamento, idAtendimento, situacaoVeiculo, valorTotal, status: 'rascunho', itens };
+    return {
+      id: idOrcamento,
+      idAtendimento,
+      situacaoVeiculo,
+      valorTotal,
+      status: 'rascunho',
+      itens
+    };
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -166,7 +265,8 @@ async function buscarPorId(idOrcamento) {
        a.id_veiculo AS idVeiculo,
        a.id_funcionario AS idFuncionario
      FROM orcamento o
-     INNER JOIN atendimento a ON a.id_atendimento = o.id_atendimento
+     INNER JOIN atendimento a
+       ON a.id_atendimento = o.id_atendimento
      WHERE o.id_orcamento = ?`,
     [idOrcamento]
   );
@@ -176,26 +276,44 @@ async function buscarPorId(idOrcamento) {
   }
 
   const [itensRows] = await pool.execute(
-    'SELECT id_orcamento_item AS id, descricao, valor FROM orcamento_item WHERE id_orcamento = ?',
+    `SELECT
+       id_orcamento_item AS id,
+       descricao,
+       valor
+     FROM orcamento_item
+     WHERE id_orcamento = ?`,
     [idOrcamento]
   );
 
-  return { ...orcamentoRows[0], itens: itensRows };
+  return {
+    ...orcamentoRows[0],
+    itens: itensRows
+  };
 }
 
 async function marcarComoEnviado(idOrcamento) {
   const [resultado] = await pool.execute(
-    `UPDATE orcamento SET status = 'enviado', enviado_em = NOW() WHERE id_orcamento = ? AND status = 'rascunho'`,
+    `UPDATE orcamento
+     SET status = 'enviado',
+         enviado_em = NOW()
+     WHERE id_orcamento = ?
+       AND status = 'rascunho'`,
     [idOrcamento]
   );
+
   return resultado.affectedRows > 0;
 }
 
 async function registrarDecisao(idOrcamento, decisao) {
   const [resultado] = await pool.execute(
-    `UPDATE orcamento SET status = ?, decidido_em = NOW() WHERE id_orcamento = ? AND status = 'enviado'`,
+    `UPDATE orcamento
+     SET status = ?,
+         decidido_em = NOW()
+     WHERE id_orcamento = ?
+       AND status = 'enviado'`,
     [decisao, idOrcamento]
   );
+
   return resultado.affectedRows > 0;
 }
 
@@ -211,16 +329,20 @@ async function listarPorCliente(idCliente) {
        v.marca,
        v.modelo
      FROM orcamento o
-     INNER JOIN atendimento a ON a.id_atendimento = o.id_atendimento
-     INNER JOIN veiculo v ON v.id_veiculo = a.id_veiculo
-     WHERE a.id_cliente = ? AND o.status <> 'rascunho'
+     INNER JOIN atendimento a
+       ON a.id_atendimento = o.id_atendimento
+     INNER JOIN veiculo v
+       ON v.id_veiculo = a.id_veiculo
+     WHERE a.id_cliente = ?
+       AND o.status <> 'rascunho'
      ORDER BY o.criado_em DESC`,
     [idCliente]
   );
+
   return rows;
 }
 
-// Orçamentos já enviados (e suas decisões) para a equipe acompanhar.
+// Orçamentos já enviados e suas decisões para a equipe acompanhar.
 async function listarParaEquipe() {
   const [rows] = await pool.execute(
     `SELECT
@@ -234,14 +356,45 @@ async function listarParaEquipe() {
        v.marca,
        v.modelo
      FROM orcamento o
-     INNER JOIN atendimento a ON a.id_atendimento = o.id_atendimento
-     INNER JOIN cliente c ON c.id_cliente = a.id_cliente
-     INNER JOIN veiculo v ON v.id_veiculo = a.id_veiculo
+     INNER JOIN atendimento a
+       ON a.id_atendimento = o.id_atendimento
+     INNER JOIN cliente c
+       ON c.id_cliente = a.id_cliente
+     INNER JOIN veiculo v
+       ON v.id_veiculo = a.id_veiculo
      WHERE o.status <> 'rascunho'
-     ORDER BY COALESCE(o.decidido_em, o.enviado_em, o.criado_em) DESC, o.id_orcamento DESC
+     ORDER BY
+       COALESCE(o.decidido_em, o.enviado_em, o.criado_em) DESC,
+       o.id_orcamento DESC
      LIMIT 100`
   );
+
   return rows;
+}
+
+async function atualizarStatusOrdem(
+  idAtendimento,
+  novoStatus,
+  idFuncionario,
+  administrador,
+  previsaoConclusao
+) {
+  const [resultado] = await pool.execute(
+    `UPDATE ordem_servico
+     SET status = ?,
+         previsao_conclusao = COALESCE(?, previsao_conclusao)
+     WHERE id_atendimento = ?
+       AND (? = 1 OR id_funcionario = ?)`,
+    [
+      novoStatus,
+      previsaoConclusao,
+      idAtendimento,
+      administrador ? 1 : 0,
+      idFuncionario
+    ]
+  );
+
+  return resultado.affectedRows > 0;
 }
 
 module.exports = {
@@ -250,11 +403,13 @@ module.exports = {
   criarAtendimento,
   listarAtendimentosAbertos,
   atualizarUrgencia,
+  listarAtendimentosPorCliente,
   buscarAtendimentoPorId,
   cancelarAtendimento,
   criarOrcamento,
   buscarPorId,
   marcarComoEnviado,
   registrarDecisao,
-  listarPorCliente
+  listarPorCliente,
+  atualizarStatusOrdem
 };
