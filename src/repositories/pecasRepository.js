@@ -89,6 +89,22 @@ async function listarCategorias() {
   return rows.map((row) => row.categoria);
 }
 
+async function listarOpcoesDisponiveis() {
+  const [rows] = await pool.execute(
+    `SELECT
+       id_peca AS id,
+       codigo,
+       nome,
+       quantidade_disponivel AS quantidade,
+       preco
+     FROM peca
+     WHERE ativo = 1 AND quantidade_disponivel > 0
+     ORDER BY nome ASC, id_peca ASC`
+  );
+
+  return rows.map((row) => ({ ...row, preco: Number(row.preco) }));
+}
+
 async function darBaixa({ idPeca, quantidade, motivo, idUsuario }) {
   const connection = await pool.getConnection();
 
@@ -171,6 +187,7 @@ module.exports = {
   findAll,
   resumoPorSituacao,
   listarCategorias,
+  listarOpcoesDisponiveis,
   montarFiltro,
   darBaixa,
   listarBaixasRecentes

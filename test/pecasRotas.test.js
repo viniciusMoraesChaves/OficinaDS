@@ -12,8 +12,13 @@ test('rotas de estoque exigem login', async (t) => {
   const requisicoes = [
     ['GET', '/api/pecas'],
     ['GET', '/api/pecas/categorias'],
+    ['GET', '/api/pecas/opcoes'],
     ['GET', '/api/pecas/baixas'],
-    ['POST', '/api/pecas/1/baixas']
+    ['POST', '/api/pecas/1/baixas'],
+    ['GET', '/api/atendimentos/1/pecas'],
+    ['POST', '/api/atendimentos/1/pecas'],
+    ['PATCH', '/api/atendimentos/1/pecas/1'],
+    ['DELETE', '/api/atendimentos/1/pecas/1']
   ];
 
   for (const [method, caminho] of requisicoes) {

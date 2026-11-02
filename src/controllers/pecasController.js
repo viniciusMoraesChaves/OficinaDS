@@ -26,6 +26,11 @@ async function categorias(req, res) {
   res.json({ dados: lista });
 }
 
+async function opcoes(req, res) {
+  const lista = await pecasRepository.listarOpcoesDisponiveis();
+  res.json({ dados: lista });
+}
+
 async function baixar(req, res) {
   const idPeca = parseId(req.params.id);
   const { quantidade, motivo } = parseBaixaPeca(req.body);
@@ -49,4 +54,4 @@ async function listarBaixas(req, res) {
   res.json({ dados: baixas });
 }
 
-module.exports = { list, categorias, baixar, listarBaixas };
+module.exports = { list, categorias, opcoes, baixar, listarBaixas };

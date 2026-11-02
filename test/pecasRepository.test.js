@@ -80,6 +80,15 @@ test('listarCategorias devolve só os nomes', async () => {
   assert.deepEqual(await pecasRepository.listarCategorias(), ['Filtros', 'Freios']);
 });
 
+test('opções de uso mostram somente peças ativas com estoque', async () => {
+  calls.length = 0;
+
+  await pecasRepository.listarOpcoesDisponiveis();
+
+  assert.match(calls[0].sql, /ativo = 1 AND quantidade_disponivel > 0/);
+  assert.match(calls[0].sql, /ORDER BY nome ASC/);
+});
+
 test('histórico de baixas busca o nome no cadastro relacionado ao usuário', async () => {
   calls.length = 0;
 

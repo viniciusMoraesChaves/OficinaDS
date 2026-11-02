@@ -6,6 +6,7 @@ import { formatCurrency, formatDateTime } from '../utils/format';
 import type { ClienteOpcao } from '../types/cliente';
 import type { FuncionarioOpcao } from '../types/funcionario';
 import type { AtendimentoAberto, ItemOrcamentoForm, OrcamentoEquipe, StatusOrcamento, UrgenciaAtendimento } from '../types/orcamento';
+import type { PecaOpcao, PecaUtilizada } from '../types/peca';
 import { useSearchParams } from 'react-router-dom';
 
 const STATUS_LABEL: Record<StatusOrcamento, string> = {
@@ -63,6 +64,18 @@ export default function Atendimentos() {
   const [salvandoProgresso, setSalvandoProgresso] = useState(false);
   const [erroProgresso, setErroProgresso] = useState('');
 
+  // --- peças utilizadas ---
+  const pecasDialogRef = useRef<HTMLDialogElement>(null);
+  const [atendimentoPecas, setAtendimentoPecas] = useState<AtendimentoAberto | null>(null);
+  const [pecasDisponiveis, setPecasDisponiveis] = useState<PecaOpcao[]>([]);
+  const [pecasUtilizadas, setPecasUtilizadas] = useState<PecaUtilizada[]>([]);
+  const [pecaSelecionada, setPecaSelecionada] = useState<number | ''>('');
+  const [quantidadePeca, setQuantidadePeca] = useState(1);
+  const [quantidadesEdicao, setQuantidadesEdicao] = useState<Record<number, number>>({});
+  const [carregandoPecas, setCarregandoPecas] = useState(false);
+  const [salvandoPeca, setSalvandoPeca] = useState(false);
+  const [erroPecas, setErroPecas] = useState('');
+
   const carregarOrcamentos = useCallback(async () => {
     try {
       const { dados } = await apiFetch<{ dados: OrcamentoEquipe[] }>('/api/orcamentos');
@@ -113,7 +126,13 @@ export default function Atendimentos() {
     if (atendimentoOrcamento && dialog && !dialog.open) dialog.showModal();
   }, [atendimentoOrcamento]);
 
+  useEffect(() => {
+    const dialog = pecasDialogRef.current;
+    if (atendimentoPecas && dialog && !dialog.open) dialog.showModal();
+  }, [atendimentoPecas]);
+
   const clienteDetalhe = clientes.find((c) => c.id === clienteSelecionado) ?? null;
+  const pecaOpcaoSelecionada = pecasDisponiveis.find((peca) => peca.id === pecaSelecionada) ?? null;
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -199,6 +218,117 @@ export default function Atendimentos() {
       carregarAtendimentos();
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Erro ao remover atendimento.');
+    }
+  }
+
+  async function carregarPecasDoAtendimento(idAtendimento: number) {
+    setCarregandoPecas(true);
+    setErroPecas('');
+
+    try {
+      const [opcoesRes, utilizadasRes] = await Promise.all([
+        apiFetch<{ dados: PecaOpcao[] }>('/api/pecas/opcoes'),
+        apiFetch<{ dados: PecaUtilizada[] }>(`/api/atendimentos/${idAtendimento}/pecas`)
+      ]);
+
+      setPecasDisponiveis(opcoesRes.dados);
+      setPecasUtilizadas(utilizadasRes.dados);
+      setQuantidadesEdicao(
+        Object.fromEntries(utilizadasRes.dados.map((peca) => [peca.id, peca.quantidade]))
+      );
+
+      if (!opcoesRes.dados.some((peca) => peca.id === pecaSelecionada)) {
+        setPecaSelecionada(opcoesRes.dados[0]?.id ?? '');
+      }
+    } catch (err) {
+      setErroPecas(err instanceof Error ? err.message : 'Erro ao carregar as peças do atendimento.');
+    } finally {
+      setCarregandoPecas(false);
+    }
+  }
+
+  function abrirModalPecas(atendimento: AtendimentoAberto) {
+    setAtendimentoPecas(atendimento);
+    setPecasDisponiveis([]);
+    setPecasUtilizadas([]);
+    setPecaSelecionada('');
+    setQuantidadePeca(1);
+    setErroPecas('');
+    void carregarPecasDoAtendimento(atendimento.id);
+  }
+
+  async function handleAdicionarPeca(e: FormEvent) {
+    e.preventDefault();
+    if (!atendimentoPecas) return;
+
+    if (pecaSelecionada === '' || !Number.isInteger(quantidadePeca) || quantidadePeca <= 0) {
+      setErroPecas('Selecione uma peça e informe uma quantidade inteira maior que zero.');
+      return;
+    }
+
+    if (pecaOpcaoSelecionada && quantidadePeca > pecaOpcaoSelecionada.quantidade) {
+      setErroPecas(`Estoque insuficiente. Existem ${pecaOpcaoSelecionada.quantidade} unidade(s) disponível(is).`);
+      return;
+    }
+
+    setSalvandoPeca(true);
+    setErroPecas('');
+
+    try {
+      await apiFetch(`/api/atendimentos/${atendimentoPecas.id}/pecas`, {
+        method: 'POST',
+        body: JSON.stringify({ idPeca: pecaSelecionada, quantidade: quantidadePeca })
+      });
+      setQuantidadePeca(1);
+      await carregarPecasDoAtendimento(atendimentoPecas.id);
+    } catch (err) {
+      setErroPecas(err instanceof Error ? err.message : 'Erro ao registrar a peça.');
+    } finally {
+      setSalvandoPeca(false);
+    }
+  }
+
+  async function handleEditarPeca(peca: PecaUtilizada) {
+    if (!atendimentoPecas) return;
+    const quantidade = quantidadesEdicao[peca.id];
+
+    if (!Number.isInteger(quantidade) || quantidade <= 0) {
+      setErroPecas('Informe uma quantidade inteira maior que zero.');
+      return;
+    }
+
+    setSalvandoPeca(true);
+    setErroPecas('');
+
+    try {
+      await apiFetch(`/api/atendimentos/${atendimentoPecas.id}/pecas/${peca.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ quantidade })
+      });
+      await carregarPecasDoAtendimento(atendimentoPecas.id);
+    } catch (err) {
+      setErroPecas(err instanceof Error ? err.message : 'Erro ao alterar a quantidade.');
+    } finally {
+      setSalvandoPeca(false);
+    }
+  }
+
+  async function handleRemoverPeca(peca: PecaUtilizada) {
+    if (!atendimentoPecas) return;
+    if (!window.confirm(`Remover ${peca.nome} deste atendimento?`)) return;
+
+    setSalvandoPeca(true);
+    setErroPecas('');
+
+    try {
+      await apiFetch(`/api/atendimentos/${atendimentoPecas.id}/pecas/${peca.id}`, {
+        method: 'DELETE'
+      });
+      await carregarPecasDoAtendimento(atendimentoPecas.id);
+    } catch (err) {
+      setErroPecas(err instanceof Error ? err.message : 'Erro ao remover a peça.');
+    } finally {
+      setSalvandoPeca(false);
     }
   }
 
@@ -428,6 +558,13 @@ export default function Atendimentos() {
                     <button
                       className="button button--secondary button--small"
                       type="button"
+                      onClick={() => abrirModalPecas(a)}
+                    >
+                      Peças utilizadas
+                    </button>{' '}
+                    <button
+                      className="button button--secondary button--small"
+                      type="button"
                       onClick={() => handleRemover(a.id)}
                     >
                       Remover
@@ -485,6 +622,159 @@ export default function Atendimentos() {
           </table>
         </div>
       </section>
+
+      {atendimentoPecas && (
+        <dialog
+          ref={pecasDialogRef}
+          className="dialog dialog--pecas"
+          onClose={() => setAtendimentoPecas(null)}
+        >
+          <div className="dialog__header">
+            <div>
+              <h2>Peças utilizadas</h2>
+              <p className="dialog__subtitle">
+                {atendimentoPecas.clienteNome} — {atendimentoPecas.placa}
+              </p>
+            </div>
+            <button
+              className="dialog__close"
+              type="button"
+              onClick={() => pecasDialogRef.current?.close()}
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="dialog__body">
+            <form className="pecas-form" onSubmit={handleAdicionarPeca}>
+              <div className="field pecas-form__selecao">
+                <label htmlFor="peca-disponivel">Peça disponível</label>
+                <select
+                  id="peca-disponivel"
+                  value={pecaSelecionada}
+                  onChange={(e) => setPecaSelecionada(e.target.value ? Number(e.target.value) : '')}
+                  disabled={carregandoPecas || salvandoPeca || pecasDisponiveis.length === 0}
+                  required
+                >
+                  <option value="">
+                    {carregandoPecas ? 'Carregando...' : 'Selecione uma peça'}
+                  </option>
+                  {pecasDisponiveis.map((peca) => (
+                    <option key={peca.id} value={peca.id}>
+                      {peca.nome} ({peca.codigo}) — {peca.quantidade} disponível(is)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field pecas-form__quantidade">
+                <label htmlFor="peca-quantidade">Quantidade</label>
+                <input
+                  id="peca-quantidade"
+                  type="number"
+                  min={1}
+                  max={pecaOpcaoSelecionada?.quantidade}
+                  step={1}
+                  value={quantidadePeca}
+                  onChange={(e) => setQuantidadePeca(Number(e.target.value))}
+                  disabled={salvandoPeca}
+                  required
+                />
+              </div>
+
+              <button
+                className="button button--primary pecas-form__botao"
+                type="submit"
+                disabled={salvandoPeca || carregandoPecas || pecaSelecionada === ''}
+              >
+                {salvandoPeca ? 'Salvando...' : '+ Registrar peça'}
+              </button>
+            </form>
+
+            {erroPecas && <Feedback type="error" message={erroPecas} />}
+            {carregandoPecas && <Feedback type="loading" message="Atualizando peças..." />}
+
+            <div className="table-wrapper pecas-utilizadas">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Peça</th>
+                    <th>Valor unitário</th>
+                    <th>Quantidade</th>
+                    <th>Total</th>
+                    <th><span className="visually-hidden">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!carregandoPecas && pecasUtilizadas.length === 0 && (
+                    <tr>
+                      <td className="empty-cell" colSpan={5}>Nenhuma peça registrada.</td>
+                    </tr>
+                  )}
+                  {pecasUtilizadas.map((peca) => (
+                    <tr key={peca.id}>
+                      <td>
+                        <strong>{peca.nome}</strong>
+                        <small className="peca-codigo">{peca.codigo ?? 'Peça histórica'}</small>
+                      </td>
+                      <td className="nowrap">{formatCurrency(peca.valorUnitario)}</td>
+                      <td>
+                        <input
+                          className="peca-quantidade-input"
+                          type="number"
+                          min={1}
+                          max={peca.estoqueDisponivel === null ? undefined : peca.quantidade + peca.estoqueDisponivel}
+                          step={1}
+                          value={quantidadesEdicao[peca.id] ?? peca.quantidade}
+                          onChange={(e) => setQuantidadesEdicao((atuais) => ({
+                            ...atuais,
+                            [peca.id]: Number(e.target.value)
+                          }))}
+                          disabled={salvandoPeca || peca.idPeca === null}
+                          aria-label={`Quantidade de ${peca.nome}`}
+                        />
+                      </td>
+                      <td className="nowrap">
+                        {formatCurrency(peca.valorUnitario * peca.quantidade)}
+                      </td>
+                      <td className="align-right nowrap">
+                        <button
+                          className="button button--secondary button--small"
+                          type="button"
+                          onClick={() => handleEditarPeca(peca)}
+                          disabled={salvandoPeca || peca.idPeca === null || (quantidadesEdicao[peca.id] ?? peca.quantidade) === peca.quantidade}
+                        >
+                          Salvar
+                        </button>{' '}
+                        <button
+                          className="button button--ghost button--small"
+                          type="button"
+                          onClick={() => handleRemoverPeca(peca)}
+                          disabled={salvandoPeca || peca.idPeca === null}
+                        >
+                          Remover
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="dialog__actions">
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => pecasDialogRef.current?.close()}
+                disabled={salvandoPeca}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </dialog>
+      )}
 
       {atendimentoProgresso && (
         <dialog

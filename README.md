@@ -209,7 +209,11 @@ OficinaDS/
 │   ├── 16_historico_veiculo.sql
 │   ├── 17_atendimentos_realizados.sql
 │   ├── 18_estoque_pecas.sql
-│   └── 19_pedidos_pecas.sql
+│   ├── 19_pedidos_pecas.sql
+│   ├── 20_baixa_pecas_danificadas.sql
+│   ├── 21_acompanhamento_servicos.sql
+│   ├── 22_urgencia_atendimento.sql
+│   └── 23_pecas_utilizadas.sql
 ├── docs/
 │   ├── DER_DO_MODULO.md
 │   ├── INTEGRACAO_EQUIPE.md
@@ -333,7 +337,7 @@ O DER completo e as observações sobre as relações estão em [`docs/DER_DO_MO
 
 - `atendimento`, `orcamento` e `orcamento_item`: script `09`;
 - `ordem_servico` e `diagnostico`: script `13`, ligados ao atendimento pelo `14`;
-- `peca_utilizada`: script `16`.
+- `peca_utilizada`: criada no script `16` e ligada ao estoque/ordem de serviço pelo `23`;
 - `peca`: script `18`;
 - `pedido_peca` e `pedido_peca_item`: script `19`.
 
@@ -395,6 +399,10 @@ Execute os arquivos da pasta `database` como `root`, **nesta ordem**. A ordem im
 | 16 | `17_atendimentos_realizados.sql` | atendimentos realizados voltam a aparecer nos diagnósticos |
 | 17 | `18_estoque_pecas.sql` | tabela de peças do estoque, com dados fictícios |
 | 18 | `19_pedidos_pecas.sql` | pedidos de peças ao superior (depois do `03` e do `18`) |
+| 19 | `20_baixa_pecas_danificadas.sql` | baixa de peças danificadas e histórico |
+| 20 | `21_acompanhamento_servicos.sql` | previsão e atualização do progresso dos serviços |
+| 21 | `22_urgencia_atendimento.sql` | urgência baixa, média ou alta nos atendimentos |
+| 22 | `23_pecas_utilizadas.sql` | liga peças usadas ao estoque e à ordem de serviço |
 
 O arquivo `04_consultas_para_estudar.sql` é opcional e contém exemplos de consultas.
 
@@ -419,6 +427,10 @@ mysql -u root -p --default-character-set=utf8mb4 < database/16_historico_veiculo
 mysql -u root -p --default-character-set=utf8mb4 < database/17_atendimentos_realizados.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/18_estoque_pecas.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/19_pedidos_pecas.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/20_baixa_pecas_danificadas.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/21_acompanhamento_servicos.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/22_urgencia_atendimento.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/23_pecas_utilizadas.sql
 ```
 
 > No Windows, o `--default-character-set=utf8mb4` evita erros de codificação e acentos quebrados. Pare no primeiro erro e corrija antes de continuar. Se precisar recomeçar do zero, apague o banco com `DROP DATABASE oficina_ds;` e refaça a sequência. Repetir o `15_agendamentos.sql` recalcula as datas dos agendamentos de exemplo e apaga os reagendamentos que você tiver testado.
@@ -544,6 +556,10 @@ Todas as rotas, exceto `saude`, `cadastro` e `login`, exigem o cabeçalho `Autho
 | `GET` | `/api/financeiro/resumo` | Admin | Resumo financeiro |
 | `GET` | `/api/atendimentos` | Equipe | Lista os atendimentos em andamento |
 | `POST` | `/api/atendimentos` | Equipe | Inclui um cliente na lista de atendimento |
+| `GET` | `/api/atendimentos/:id/pecas` | Equipe | Lista as peças utilizadas no atendimento |
+| `POST` | `/api/atendimentos/:id/pecas` | Equipe | Registra uma peça e reduz o estoque |
+| `PATCH` | `/api/atendimentos/:id/pecas/:idPecaUtilizada` | Equipe | Altera a quantidade e ajusta o estoque |
+| `DELETE` | `/api/atendimentos/:id/pecas/:idPecaUtilizada` | Equipe | Remove a peça e devolve a quantidade ao estoque |
 | `DELETE` | `/api/atendimentos/:id` | Equipe | Remove um atendimento da lista |
 | `POST` | `/api/atendimentos/:id/orcamento` | Equipe | Cria o orçamento do atendimento |
 | `GET` | `/api/orcamentos` | Equipe | Lista os orçamentos |
@@ -557,6 +573,7 @@ Todas as rotas, exceto `saude`, `cadastro` e `login`, exigem o cabeçalho `Autho
 | `GET` | `/api/painel` | logado | Indicadores e pendências da tela inicial, conforme o perfil |
 | `GET` | `/api/pecas` | Equipe | Consulta o estoque (busca, categoria, situação e paginação) |
 | `GET` | `/api/pecas/categorias` | Equipe | Categorias de peças |
+| `GET` | `/api/pecas/opcoes` | Equipe | Peças ativas com estoque para seleção |
 | `GET` | `/api/pedidos-pecas` | Equipe | Lista pedidos (Funcionario vê só os dele; Admin vê todos) |
 | `GET` | `/api/pedidos-pecas/opcoes` | Equipe | Peças e atendimentos para montar o pedido |
 | `GET` | `/api/pedidos-pecas/:id` | Equipe | Detalhes e itens de um pedido |
