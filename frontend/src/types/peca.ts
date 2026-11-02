@@ -39,3 +39,21 @@ export type BaixaPeca = {
   usuarioNome: string;
   criadaEm: string;
 };
+
+export type PecaOpcao = {
+  id: number;
+  codigo: string;
+  nome: string;
+  quantidade: number;
+  preco: number;
+};
+
+export type PecaUtilizada = {
+  id: number;
+  idPeca: number | null;
+  codigo: string | null;
+  nome: string;
+  quantidade: number;
+  valorUnitario: number;
+  estoqueDisponivel: number | null;
+};

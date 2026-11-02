@@ -1288,8 +1288,57 @@ a {
   font-size: 11px;
 }
 
+.dialog--pecas {
+  width: min(900px, calc(100vw - 32px));
+}
+
+.dialog__subtitle {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.pecas-form {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 120px auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.pecas-form__botao {
+  margin-bottom: 1px;
+  white-space: nowrap;
+}
+
+.pecas-utilizadas {
+  margin-top: 14px;
+}
+
+.peca-codigo {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.peca-quantidade-input {
+  width: 82px;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
 @media (max-width: 700px) {
   .atendimento-filtros {
+    grid-template-columns: 1fr;
+  }
+
+  .pecas-form {
     grid-template-columns: 1fr;
   }
 }
