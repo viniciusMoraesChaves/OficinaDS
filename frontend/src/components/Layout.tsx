@@ -1,5 +1,18 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import {
+  House,
+  Wrench,
+  CarFront,
+  Package,
+  Users,
+  CalendarDays,
+  UserRound,
+  Wallet,
+  FileText,
+  ClipboardList,
+  Stethoscope,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PERFIS, type Perfil } from '../types/perfil';
 
@@ -10,36 +23,36 @@ type LayoutProps = {
   children: ReactNode;
 };
 
-type LinkItem = { to: string; label: string; icon: string; end?: boolean };
+type LinkItem = { to: string; label: string; icon: ReactNode; end?: boolean };
 type Grupo = { titulo?: string; links: LinkItem[] };
 
-const inicio: LinkItem = { to: '/', label: 'Início', icon: '⌂', end: true };
+const inicio: LinkItem = { to: '/', label: 'Início', icon: <House size={20} />, end: true };
 
 const operacao: Grupo = {
   titulo: 'Operação',
   links: [
-    { to: '/atendimentos', label: 'Atendimentos', icon: '🔧' },
-    { to: '/agendamentos', label: 'Agendamentos', icon: '◷' },
-    { to: '/diagnosticos', label: 'Diagnósticos', icon: '⌕' },
-    { to: '/pedidos-pecas', label: 'Pedidos de peças', icon: '📦' }
+    { to: '/atendimentos', label: 'Atendimentos', icon: <Wrench size={20} /> },
+    { to: '/agendamentos', label: 'Agendamentos', icon: <CalendarDays size={20} /> },
+    { to: '/diagnosticos', label: 'Diagnósticos', icon: <Stethoscope size={20} /> },
+    { to: '/pedidos-pecas', label: 'Pedidos de peças', icon: <Package size={20} /> }
   ]
 };
 
 const cadastros: Grupo = {
   titulo: 'Cadastros',
   links: [
-    { to: '/clientes', label: 'Clientes', icon: '♙' },
-    { to: '/veiculos', label: 'Veículos', icon: '🚗' },
-    { to: '/estoque', label: 'Estoque', icon: '▤' }
+    { to: '/clientes', label: 'Clientes', icon: <Users size={20} /> },
+    { to: '/veiculos', label: 'Veículos', icon: <CarFront size={20} /> },
+    { to: '/estoque', label: 'Estoque', icon: <Package size={20} /> }
   ]
 };
 
 const administracao: Grupo = {
   titulo: 'Administração',
   links: [
-    { to: '/funcionarios', label: 'Funcionários', icon: '⚙' },
-    { to: '/usuarios', label: 'Usuários', icon: '☺' },
-    { to: '/financeiro', label: 'Financeiro', icon: '$' }
+    { to: '/funcionarios', label: 'Funcionários', icon: <ClipboardList size={20} /> },
+    { to: '/usuarios', label: 'Usuários', icon: <UserRound size={20} /> },
+    { to: '/financeiro', label: 'Financeiro', icon: <Wallet size={20} /> }
   ]
 };
 
@@ -50,8 +63,8 @@ const gruposPorPerfil: Record<Perfil, Grupo[]> = {
     {
       links: [
         inicio,
-        { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: '🧾' },
-        { to: '/meus-agendamentos', label: 'Meus agendamentos', icon: '◷' }
+        { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: <FileText size={20} /> },
+        { to: '/meus-agendamentos', label: 'Meus agendamentos', icon: <CalendarDays size={20} /> }
       ]
     }
   ]
