@@ -1342,3 +1342,97 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+.sidebar__user-link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 8px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar__user-link:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar__user-link:focus-visible {
+  outline: 2px solid #f5a000;
+  outline-offset: 3px;
+}
+
+.sidebar__user-link .sidebar__user-copy small {
+  display: block;
+  margin-top: 3px;
+  color: #a3a3a3;
+  font-size: 11px;
+}
+
+.perfil-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.perfil-botao {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.perfil-botao--primario {
+  background-color: #f5a000;
+  color: #171717;
+  border: 1px solid #f5a000;
+}
+
+.perfil-botao--primario:hover:not(:disabled) {
+  background-color: #e69500;
+}
+
+.perfil-botao--secundario {
+  background-color: #ffffff;
+  color: #242424;
+  border: 1px solid #dededb;
+}
+
+.perfil-botao--secundario:hover:not(:disabled) {
+  background-color: #f3f3f1;
+}
+
+.perfil-botao:focus-visible {
+  outline: 2px solid #f5a000;
+  outline-offset: 3px;
+}
+
+.perfil-botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.perfil-notificacao {
+  position: fixed;
+  top: 88px;
+  right: 24px;
+  z-index: 1000;
+  max-width: min(380px, calc(100vw - 48px));
+  padding: 14px 18px;
+  border: 1px solid #bce3c9;
+  border-radius: 10px;
+  background-color: #f0fbf3;
+  color: #226b3e;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}

@@ -19,6 +19,7 @@ import Diagnosticos from './pages/Diagnosticos';
 import Agendamentos from './pages/Agendamentos';
 import Estoque from './pages/Estoque';
 import PedidosPecas from './pages/PedidosPecas';
+import MeuPerfil from './pages/MeuPerfil';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/cadastro" element={<Cadastro />} />
 
           <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
+          <Route path="/meu-perfil" element={<RequireAuth><MeuPerfil /></RequireAuth>}/>
 
           <Route
             path="/clientes"

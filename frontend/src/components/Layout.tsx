@@ -111,13 +111,25 @@ export function Layout({ title, subtitle, documentTitle, children }: LayoutProps
         </nav>
 
         <div className="sidebar__footer">
-          <div className="sidebar__user">
-            <span className="avatar">{(perfil ?? '?').slice(0, 2).toUpperCase()}</span>
-            <span className="sidebar__user-copy">
-              <strong>{perfil ?? 'Sem perfil'}</strong>
-            </span>
-          </div>
-          <button className="sidebar__logout" type="button" onClick={logout}>
+          <Link
+            to="/meu-perfil"
+            className="sidebar__user sidebar__user-link"
+            onClick={() => setOpen(false)}
+            title="Acessar meu perfil"
+          >
+          <span className="avatar">
+            {(perfil ?? '?').slice(0, 2).toUpperCase()}
+          </span>
+          <span className="sidebar__user-copy">
+            <strong>{perfil ?? 'Sem perfil'}</strong>
+            <small>Meu perfil</small>
+          </span>
+          </Link>
+          <button
+            className="sidebar__logout"
+            type="button"
+            onClick={logout}
+          >
             Sair
           </button>
         </div>
