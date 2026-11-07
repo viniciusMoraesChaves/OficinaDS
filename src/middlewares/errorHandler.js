@@ -47,6 +47,13 @@ function errorHandler(error, req, res, next) {
     });
   }
 
+  if (error.code === 'ER_NO_SUCH_TABLE') {
+    return res.status(503).json({
+      erro: 'TABELA_NAO_ENCONTRADA',
+      mensagem: 'Falta uma tabela no banco. Execute os scripts da pasta database na ordem do README (inclusive o 24_inadimplencias.sql).'
+    });
+  }
+
   if (error.code === 'ER_BAD_DB_ERROR') {
     return res.status(503).json({
       erro: 'BANCO_NAO_ENCONTRADO',

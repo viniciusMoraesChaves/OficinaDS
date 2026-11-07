@@ -1,4 +1,5 @@
 const { pool } = require('../config/database');
+const cobrancasRepository = require('./cobrancasRepository');
 
 const LIMITE_LISTA = 5;
 
@@ -42,7 +43,8 @@ async function contagensEquipe({ administrador = false } = {}) {
     semDiagnostico,
     estoqueAtencao,
     estoqueIndisponivel,
-    funcionariosAtivos
+    funcionariosAtivos,
+    inadimplencias
   ] = await Promise.all([
     tentar(() => contar(`SELECT COUNT(*) AS total FROM atendimento WHERE status = 'aberto'`)),
     tentar(() => contar(`SELECT COUNT(*) AS total FROM orcamento WHERE status = 'enviado'`)),
@@ -55,6 +57,9 @@ async function contagensEquipe({ administrador = false } = {}) {
     )),
     administrador
       ? tentar(() => contar('SELECT COUNT(*) AS total FROM funcionario WHERE ativo = 1'))
+      : Promise.resolve(null),
+    administrador
+      ? tentar(() => cobrancasRepository.contagemVencidas())
       : Promise.resolve(null)
   ]);
 
@@ -64,7 +69,8 @@ async function contagensEquipe({ administrador = false } = {}) {
     semDiagnostico,
     estoqueAtencao,
     estoqueIndisponivel,
-    funcionariosAtivos
+    funcionariosAtivos,
+    inadimplencias
   };
 }
 

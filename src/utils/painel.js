@@ -49,6 +49,21 @@ function indicadoresEquipe(contagens, { administrador = false } = {}) {
   ];
 
   if (administrador) {
+    const vencidas = contagens.inadimplencias;
+
+    if (vencidas) {
+      itens.push({
+        chave: 'inadimplencias',
+        rotulo: 'Cobranças em atraso',
+        valor: vencidas.quantidade,
+        ajuda: vencidas.quantidade > 0
+          ? `${moeda(vencidas.valor)} em aberto`
+          : 'Nenhuma cobrança vencida',
+        link: '/financeiro/inadimplencias',
+        atencao: true
+      });
+    }
+
     itens.push({
       chave: 'equipe',
       rotulo: 'Funcionários ativos',

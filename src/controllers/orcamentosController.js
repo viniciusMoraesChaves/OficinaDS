@@ -1,6 +1,7 @@
 const orcamentosRepository = require('../repositories/orcamentosRepository');
 const clientesRepository = require('../repositories/clientesRepository');
 const funcionariosRepository = require('../repositories/funcionariosRepository');
+const cobrancasRepository = require('../repositories/cobrancasRepository');
 const { parseId } = require('../utils/queryParams');
 const { validarDecisao } = require('../utils/statusOrcamento');
 const {
@@ -9,6 +10,7 @@ const {
   validarOrdenacaoUrgencia
 } = require('../utils/urgencia');
 const { PERFIS } = require('../utils/perfis');
+const { PRAZO_PAGAMENTO_DIAS } = require('../utils/inadimplencias');
 
 async function criarAtendimento(req, res) {
   const idCliente = Number(req.body.idCliente);
@@ -264,6 +266,20 @@ async function enviarOrcamento(req, res) {
   res.json({ mensagem: 'Orçamento enviado ao cliente.' });
 }
 
+// O orçamento aceito vira um valor a receber (Financeiro > Inadimplências).
+// A decisão do cliente já está salva, então uma falha aqui não pode desfazê-la:
+// o erro vai para o terminal e o script 24 recria a cobrança que faltar.
+async function gerarCobranca(idOrcamento) {
+  try {
+    await cobrancasRepository.criarParaOrcamentoAceito(
+      idOrcamento,
+      PRAZO_PAGAMENTO_DIAS
+    );
+  } catch (error) {
+    console.error(`Não foi possível gerar a cobrança do orçamento ${idOrcamento}.`, error);
+  }
+}
+
 async function decidirOrcamento(req, res) {
   const idOrcamento = parseId(req.params.id);
   const decisao = String(req.body.decisao || '').trim().toLowerCase();
@@ -291,6 +307,10 @@ async function decidirOrcamento(req, res) {
     return res.status(409).json({
       mensagem: 'Este orçamento já teve uma decisão registrada.'
     });
+  }
+
+  if (decisao === 'aceito') {
+    await gerarCobranca(idOrcamento);
   }
 
   res.json({
