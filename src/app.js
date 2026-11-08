@@ -19,6 +19,7 @@ const diagnosticosRoutes = require('./routes/diagnosticosRoutes');
 const painelRoutes = require('./routes/painelRoutes');
 const pecasRoutes = require('./routes/pecasRoutes');
 const pedidosPecasRoutes = require('./routes/pedidosPecasRoutes');
+const movimentacoesRoutes = require('./routes/movimentacoesRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 const agendamentosRoutes = require('./routes/agendamentosRoutes');
 
@@ -51,6 +52,7 @@ app.use('/api/veiculos', historicoRoutes);
 app.use('/api/painel', painelRoutes);
 app.use('/api/pecas', pecasRoutes);
 app.use('/api/pedidos-pecas', pedidosPecasRoutes);
+app.use('/api/financeiro/movimentacoes', movimentacoesRoutes);
 app.use('/api', notFoundApi);
 
 
