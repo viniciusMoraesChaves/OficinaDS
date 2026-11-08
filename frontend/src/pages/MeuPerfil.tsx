@@ -13,6 +13,7 @@ type DadosPerfil = {
   telefone: string | null;
   endereco: string | null;
   possuiCadastroPessoal: number;
+  podeEditarCpf: number;
 };
 
 type RespostaMensagem = {
@@ -107,6 +108,7 @@ export default function MeuPerfil() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [endereco, setEndereco] = useState('');
 
   const [senhaAtual, setSenhaAtual] = useState('');
@@ -120,6 +122,7 @@ export default function MeuPerfil() {
     setNome(perfil.nome ?? '');
     setEmail(perfil.email);
     setTelefone(perfil.telefone ?? '');
+    setCpf(perfil.cpf ?? '');
     setEndereco(perfil.endereco ?? '');
   }
 
@@ -161,6 +164,7 @@ export default function MeuPerfil() {
 
   const possuiCadastroPessoal =
     dados?.possuiCadastroPessoal === 1;
+  const podeEditarCpf = dados?.podeEditarCpf === 1;
 
   function iniciarEdicao() {
     if (!dados) return;
@@ -214,6 +218,13 @@ export default function MeuPerfil() {
     const novoNome = nome.trim();
     const novoTelefone = telefone.trim();
     const novoEndereco = endereco.trim();
+    const novoCpf = cpf.replace(/\D/g, '');
+    const cpfAlterado = podeEditarCpf && novoCpf !== (dados.cpf ?? '');
+
+    if (podeEditarCpf && cpf.trim() && novoCpf.length !== 11) {
+      setErro('Informe um CPF com 11 dígitos.');
+      return;
+    }
 
     if (
       !novoEmail ||
@@ -223,16 +234,12 @@ export default function MeuPerfil() {
       return;
     }
 
-    if (possuiCadastroPessoal && !novoNome) {
-      setErro('Informe um nome válido.');
-      return;
-    }
-
     const emailAlterado = novoEmail !== dados.email;
 
     const dadosAlterados =
       possuiCadastroPessoal &&
       (
+        cpfAlterado ||
         novoNome !== (dados.nome ?? '') ||
         novoTelefone !== (dados.telefone ?? '') ||
         (
@@ -240,6 +247,11 @@ export default function MeuPerfil() {
           novoEndereco !== (dados.endereco ?? '')
         )
       );
+
+    if (dadosAlterados && !novoNome) {
+      setErro('Informe um nome válido.');
+      return;
+    }
 
     if (!emailAlterado && !dadosAlterados) {
       setSucesso('Nenhuma alteração foi necessária.');
@@ -255,7 +267,8 @@ export default function MeuPerfil() {
         await enviarAtualizacao('/api/me/perfil/dados', {
           nome: novoNome,
           telefone: novoTelefone,
-          endereco: novoEndereco
+          endereco: novoEndereco,
+          ...(cpfAlterado ? { cpf: novoCpf } : {})
         });
 
         algumaAlteracaoSalva = true;
@@ -463,8 +476,12 @@ export default function MeuPerfil() {
                 </label>
                 <input
                   id="perfil-cpf"
-                  value={dados.cpf ?? ''}
-                  readOnly
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  readOnly={!editando || !podeEditarCpf}
+                  disabled={salvando}
+                  inputMode="numeric"
+                  maxLength={14}
                 />
               </div>
 

@@ -49,9 +49,6 @@ async function login(req, res, next) {
       });
     }
 
-    // tipoAcesso é a opção escolhida na tela de login ("oficina" ou
-    // "cliente"). Confirma que bate com o perfil real da conta, evitando
-    // que a pessoa entre pela aba errada.
     if (tipoAcesso === 'cliente' && usuario.perfil !== PERFIS.CLIENTE) {
       return res.status(401).json({
         erro: 'PERFIL_INCOMPATIVEL',
@@ -78,7 +75,6 @@ async function cadastrar(req, res, next) {
   try {
     const { tipoAcesso } = req.body;
 
-    // Em produção, só clientes se cadastram sozinhos (CADASTRO_OFICINA_PUBLICO=false).
     if (tipoAcesso !== 'cliente' && !env.cadastroOficinaPublico) {
       return res.status(403).json({
         erro: 'CADASTRO_DESATIVADO',
@@ -110,8 +106,6 @@ async function cadastrar(req, res, next) {
         veiculo: lerVeiculo(req.body.veiculo)
       });
     } else {
-      // Cadastro público da oficina entra sempre como Funcionario; virar
-      // Administrador acontece pelo cargo "Gerente" (feito por um Administrador).
       nomePerfil = PERFIS.FUNCIONARIO;
       const perfil = await buscarPerfilOuFalhar(nomePerfil);
       const cargo = await cargosRepository.findPadraoCadastro();
@@ -157,8 +151,6 @@ async function buscarPerfilOuFalhar(nomePerfil) {
   return perfil;
 }
 
-// Veículo é opcional no cadastro do cliente; se qualquer campo for enviado,
-// placa, marca, modelo e ano passam a ser obrigatórios.
 function lerVeiculo(bruto) {
   if (!bruto || typeof bruto !== 'object') return null;
 
@@ -244,7 +236,7 @@ async function atualizarEmailMeuPerfil(req, res, next) {
 async function atualizarDadosPessoaisMeuPerfil(req, res, next) {
   try {
     const idUsuario = req.usuarioLogado.id;
-    const { nome, telefone, endereco } = req.body ?? {};
+    const { nome, telefone, endereco, cpf } = req.body ?? {};
 
     if (typeof nome !== 'string' || !nome.trim()) {
       return res.status(400).json({
@@ -255,6 +247,18 @@ async function atualizarDadosPessoaisMeuPerfil(req, res, next) {
     if (typeof telefone !== 'string') {
       return res.status(400).json({
         mensagem: 'O telefone deve ser informado como texto.'
+      });
+    }
+
+    if (cpf !== undefined && typeof cpf !== 'string') {
+      return res.status(400).json({
+        mensagem: 'O CPF deve ser informado como texto.'
+      });
+    }
+
+    if (cpf !== undefined && cpf.trim() && apenasDigitos(cpf).length !== 11) {
+      return res.status(400).json({
+        mensagem: 'Informe um CPF com 11 dígitos.'
       });
     }
 
@@ -289,7 +293,8 @@ async function atualizarDadosPessoaisMeuPerfil(req, res, next) {
         {
           nome: nome.trim(),
           telefone: telefone.trim(),
-          endereco: endereco === undefined ? undefined : endereco.trim()
+          endereco: endereco === undefined ? undefined : endereco.trim(),
+          cpf: cpf === undefined ? undefined : apenasDigitos(cpf)
         }
       );
 
@@ -305,12 +310,23 @@ async function atualizarDadosPessoaisMeuPerfil(req, res, next) {
           mensagem: 'Esta conta não possui cadastro pessoal vinculado.'
         });
       }
+
+      if (resultado.motivo === 'CPF_NAO_EDITAVEL') {
+        return res.status(403).json({
+          mensagem: 'O CPF desta conta não pode ser alterado pelo Meu Perfil.'
+        });
+      }
     }
 
     return res.json({
       mensagem: 'Dados pessoais atualizados com sucesso.'
     });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY' && req.body?.cpf !== undefined) {
+      return res.status(409).json({
+        mensagem: 'Este CPF já está cadastrado em outra conta administrativa.'
+      });
+    }
     next(error);
   }
 }

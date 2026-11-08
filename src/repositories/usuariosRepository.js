@@ -38,13 +38,33 @@ async function buscarDadosMeuPerfil(idUsuario) {
        u.id_usuario AS id,
        u.email,
        p.nome AS perfil,
-       COALESCE(c.nome, f.nome) AS nome,
-       COALESCE(c.cpf, f.cpf) AS cpf,
-       COALESCE(c.telefone, f.telefone) AS telefone,
+       CASE
+         WHEN c.id_cliente IS NOT NULL THEN c.nome
+         WHEN f.id_funcionario IS NOT NULL THEN f.nome
+         ELSE u.nome
+       END AS nome,
+       CASE
+         WHEN c.id_cliente IS NOT NULL THEN c.cpf
+         WHEN f.id_funcionario IS NOT NULL THEN f.cpf
+         WHEN p.nome = 'Administrador' THEN u.cpf
+         ELSE NULL
+       END AS cpf,
+       CASE
+         WHEN p.nome = 'Administrador'
+           AND c.id_cliente IS NULL
+           AND f.id_funcionario IS NULL
+         THEN 1 ELSE 0
+       END AS podeEditarCpf,
+       CASE
+         WHEN c.id_cliente IS NOT NULL THEN c.telefone
+         WHEN f.id_funcionario IS NOT NULL THEN f.telefone
+         ELSE u.telefone
+       END AS telefone,
        c.endereco,
        CASE
         WHEN c.id_cliente IS NOT NULL
           OR f.id_funcionario IS NOT NULL
+          OR p.nome = 'Administrador'
         THEN 1
         ELSE 0
        END AS possuiCadastroPessoal
@@ -126,8 +146,10 @@ async function buscarVinculoMeuPerfil(idUsuario) {
   const [rows] = await pool.execute(
     `SELECT
        c.id_cliente AS clienteId,
-       f.id_funcionario AS funcionarioId
+       f.id_funcionario AS funcionarioId,
+       p.nome AS perfil
      FROM usuario u
+     INNER JOIN perfil p ON p.id_perfil = u.id_perfil
      LEFT JOIN cliente c ON c.id_usuario = u.id_usuario
      LEFT JOIN funcionario f ON f.id_usuario = u.id_usuario
      WHERE u.id_usuario = ?`,
@@ -147,6 +169,14 @@ async function atualizarDadosPessoaisMeuPerfil(idUsuario, dados) {
   const nome = dados.nome.trim();
   const telefone = dados.telefone.trim();
 
+
+  if (dados.cpf !== undefined && (
+    vinculo.perfil !== 'Administrador' ||
+    vinculo.clienteId !== null ||
+    vinculo.funcionarioId !== null
+  )) {
+    return { atualizado: false, motivo: 'CPF_NAO_EDITAVEL' };
+  }
 
   if (vinculo.clienteId !== null) {
     const alterarEndereco = dados.endereco !== undefined;
@@ -180,6 +210,32 @@ async function atualizarDadosPessoaisMeuPerfil(idUsuario, dados) {
     );
 
     return { atualizado: true };
+  }
+
+  if (vinculo.perfil === 'Administrador') {
+    const alterarCpf = dados.cpf !== undefined;
+    const [resultado] = await pool.execute(
+      alterarCpf
+        ? `UPDATE usuario
+           SET nome = ?, telefone = ?, cpf = ?
+           WHERE id_usuario = ?
+             AND id_perfil IN (
+               SELECT id_perfil FROM perfil WHERE nome = 'Administrador'
+             )`
+        : `UPDATE usuario
+           SET nome = ?, telefone = ?
+           WHERE id_usuario = ?
+             AND id_perfil IN (
+               SELECT id_perfil FROM perfil WHERE nome = 'Administrador'
+             )`,
+      alterarCpf
+        ? [nome, telefone || null, dados.cpf || null, idUsuario]
+        : [nome, telefone || null, idUsuario]
+    );
+
+    return resultado.affectedRows > 0
+      ? { atualizado: true }
+      : { atualizado: false, motivo: 'SEM_CADASTRO_VINCULADO' };
   }
 
   return { atualizado: false, motivo: 'SEM_CADASTRO_VINCULADO' };
