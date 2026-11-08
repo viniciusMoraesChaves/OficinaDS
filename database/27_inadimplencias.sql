@@ -31,9 +31,11 @@ CREATE TABLE IF NOT EXISTS cobranca (
   INDEX idx_cobranca_situacao (status, data_vencimento)
 ) ENGINE = InnoDB;
 
--- A aplicação lê as cobranças e cria uma nova quando o cliente aceita um
--- orçamento. Registrar o pagamento (UPDATE) fica para uma próxima funcionalidade.
-GRANT SELECT, INSERT ON oficina_ds.cobranca TO 'oficina_app'@'localhost';
+-- A aplicação lê as cobranças, cria uma nova quando o cliente aceita um orçamento
+-- e registra o pagamento (UPDATE só das colunas status e data_pagamento).
+-- Quem já rodou este script antes pode rodá-lo de novo para receber o UPDATE.
+GRANT SELECT, INSERT, UPDATE (status, data_pagamento)
+  ON oficina_ds.cobranca TO 'oficina_app'@'localhost';
 
 FLUSH PRIVILEGES;
 

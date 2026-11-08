@@ -1,5 +1,6 @@
 const path = require('node:path');
 const dotenv = require('dotenv');
+const { lerPrazoPagamento } = require('../utils/inadimplencias');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
@@ -50,6 +51,12 @@ const env = Object.freeze({
   // Com CADASTRO_OFICINA_PUBLICO=false, só clientes se cadastram sozinhos;
   // contas de equipe passam a ser criadas por um Administrador.
   cadastroOficinaPublico: process.env.CADASTRO_OFICINA_PUBLICO !== 'false',
+  // Dias entre o aceite do orçamento e o vencimento da cobrança.
+  // Fora de produção o padrão é -1 (já nasce vencida, para testes).
+  prazoPagamentoDias: lerPrazoPagamento(
+    process.env.PRAZO_PAGAMENTO_DIAS,
+    process.env.NODE_ENV === 'production'
+  ),
   db: {
     host: process.env.DB_HOST || 'localhost',
     port: readPositiveInteger(process.env.DB_PORT, 3306, 'DB_PORT'),

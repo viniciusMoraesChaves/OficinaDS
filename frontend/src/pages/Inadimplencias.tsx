@@ -88,9 +88,10 @@ type ListaCobrancasProps = {
   buscaInicial: string;
   atualizacao: number;
   semVencidas: boolean;
+  onPagamento: (mensagem: string) => void;
 };
 
-function ListaCobrancas({ buscaInicial, atualizacao, semVencidas }: ListaCobrancasProps) {
+function ListaCobrancas({ buscaInicial, atualizacao, semVencidas, onPagamento }: ListaCobrancasProps) {
   const inicial: FiltrosCobrancas = { ...FILTROS_VAZIOS, busca: buscaInicial };
 
   const [entradas, setEntradas] = useState<FiltrosCobrancas>(inicial);
@@ -103,6 +104,8 @@ function ListaCobrancas({ buscaInicial, atualizacao, semVencidas }: ListaCobranc
   const [valorFiltrado, setValorFiltrado] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pagando, setPagando] = useState<number | null>(null);
+  const [erroAcao, setErroAcao] = useState('');
 
   useEffect(() => {
     let ativo = true;
@@ -142,6 +145,36 @@ function ListaCobrancas({ buscaInicial, atualizacao, semVencidas }: ListaCobranc
       ativo = false;
     };
   }, [filtros, ordenacao, pagina, atualizacao]);
+
+  // Se a última cobrança da página foi quitada, volta para a página anterior.
+  useEffect(() => {
+    if (!loading && !error && cobrancas.length === 0 && pagina > 1) {
+      setPagina(pagina - 1);
+    }
+  }, [loading, error, cobrancas, pagina]);
+
+  async function marcarComoPaga(cobranca: Inadimplencia) {
+    const confirmado = window.confirm(
+      `Registrar o pagamento de ${formatCurrency(cobranca.valor)} de ${cobranca.clienteNome}?`
+    );
+    if (!confirmado) return;
+
+    setPagando(cobranca.id);
+    setErroAcao('');
+
+    try {
+      await apiFetch(`/api/financeiro/inadimplencias/${cobranca.id}/pagamento`, {
+        method: 'PATCH'
+      });
+      onPagamento(
+        `Pagamento de ${formatCurrency(cobranca.valor)} de ${cobranca.clienteNome} registrado.`
+      );
+    } catch (err) {
+      setErroAcao(mensagemErro(err));
+    } finally {
+      setPagando(null);
+    }
+  }
 
   function alterar<K extends keyof FiltrosCobrancas>(campo: K, valor: FiltrosCobrancas[K]) {
     setEntradas((atual) => ({ ...atual, [campo]: valor }));
@@ -282,6 +315,7 @@ function ListaCobrancas({ buscaInicial, atualizacao, semVencidas }: ListaCobranc
 
         {loading && <Feedback type="loading" message="Carregando inadimplências..." />}
         {error && <Feedback type="error" message={error} />}
+        {erroAcao && <Feedback type="error" message={erroAcao} />}
 
         <div className="table-wrapper">
           <table className="data-table">
@@ -293,12 +327,15 @@ function ListaCobrancas({ buscaInicial, atualizacao, semVencidas }: ListaCobranc
                 <th scope="col">Vencimento</th>
                 <th scope="col">Atraso</th>
                 <th scope="col" className="align-right">Valor</th>
+                <th scope="col">
+                  <span className="visually-hidden">Ações</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {!loading && !error && cobrancas.length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={6}>
+                  <td className="empty-cell" colSpan={7}>
                     {filtrando
                       ? 'Nenhuma cobrança vencida corresponde aos filtros.'
                       : semVencidas
@@ -345,6 +382,16 @@ function ListaCobrancas({ buscaInicial, atualizacao, semVencidas }: ListaCobranc
                   <td className="align-right nowrap">
                     <strong>{formatCurrency(cobranca.valor)}</strong>
                   </td>
+                  <td className="align-right">
+                    <button
+                      className="button button--secondary button--small"
+                      type="button"
+                      disabled={pagando !== null}
+                      onClick={() => marcarComoPaga(cobranca)}
+                    >
+                      {pagando === cobranca.id ? 'Registrando...' : 'Marcar como paga'}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -368,9 +415,10 @@ type ListaClientesProps = {
   atualizacao: number;
   semVencidas: boolean;
   onVerCobrancas: (cpf: string) => void;
+  onPagamento: (mensagem: string) => void;
 };
 
-function ListaClientes({ atualizacao, semVencidas, onVerCobrancas }: ListaClientesProps) {
+function ListaClientes({ atualizacao, semVencidas, onVerCobrancas, onPagamento }: ListaClientesProps) {
   const [inputBusca, setInputBusca] = useState('');
   const [busca, setBusca] = useState('');
   const [ordenacao, setOrdenacao] = useState<OrdenacaoClientes>('maior_valor');
@@ -380,6 +428,8 @@ function ListaClientes({ atualizacao, semVencidas, onVerCobrancas }: ListaClient
   const [paginacao, setPaginacao] = useState<Paginacao | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pagandoCliente, setPagandoCliente] = useState<number | null>(null);
+  const [erroAcao, setErroAcao] = useState('');
 
   useEffect(() => {
     let ativo = true;
@@ -418,6 +468,36 @@ function ListaClientes({ atualizacao, semVencidas, onVerCobrancas }: ListaClient
       ativo = false;
     };
   }, [busca, ordenacao, pagina, atualizacao]);
+
+  // Se o último cliente da página foi quitado, volta para a página anterior.
+  useEffect(() => {
+    if (!loading && !error && clientes.length === 0 && pagina > 1) {
+      setPagina(pagina - 1);
+    }
+  }, [loading, error, clientes, pagina]);
+
+  async function registrarPagamentoDoCliente(cliente: ClienteInadimplente) {
+    const cobrancas = `${cliente.quantidadeCobrancas} cobrança${cliente.quantidadeCobrancas === 1 ? '' : 's'} vencida${cliente.quantidadeCobrancas === 1 ? '' : 's'}`;
+    const confirmado = window.confirm(
+      `Registrar o pagamento de ${cobrancas} de ${cliente.nome}, somando ${formatCurrency(cliente.valorEmAberto)}?\n\nO cliente deixa de aparecer como inadimplente.`
+    );
+    if (!confirmado) return;
+
+    setPagandoCliente(cliente.id);
+    setErroAcao('');
+
+    try {
+      const resposta = await apiFetch<{ mensagem: string }>(
+        `/api/financeiro/inadimplencias/clientes/${cliente.id}/pagamento`,
+        { method: 'PATCH' }
+      );
+      onPagamento(`${cliente.nome}: ${resposta.mensagem}`);
+    } catch (err) {
+      setErroAcao(mensagemErro(err));
+    } finally {
+      setPagandoCliente(null);
+    }
+  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -487,6 +567,7 @@ function ListaClientes({ atualizacao, semVencidas, onVerCobrancas }: ListaClient
 
         {loading && <Feedback type="loading" message="Carregando clientes..." />}
         {error && <Feedback type="error" message={error} />}
+        {erroAcao && <Feedback type="error" message={erroAcao} />}
 
         <div className="table-wrapper">
           <table className="data-table">
@@ -539,13 +620,23 @@ function ListaClientes({ atualizacao, semVencidas, onVerCobrancas }: ListaClient
                     <strong>{formatCurrency(cliente.valorEmAberto)}</strong>
                   </td>
                   <td className="align-right">
-                    <button
-                      className="button button--secondary button--small"
-                      type="button"
-                      onClick={() => onVerCobrancas(cliente.cpf)}
-                    >
-                      Ver cobranças
-                    </button>
+                    <div className="inad-linha-acoes">
+                      <button
+                        className="button button--secondary button--small"
+                        type="button"
+                        onClick={() => onVerCobrancas(cliente.cpf)}
+                      >
+                        Ver cobranças
+                      </button>
+                      <button
+                        className="button button--primary button--small"
+                        type="button"
+                        disabled={pagandoCliente !== null}
+                        onClick={() => registrarPagamentoDoCliente(cliente)}
+                      >
+                        {pagandoCliente === cliente.id ? 'Registrando...' : 'Cliente pagou'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -572,6 +663,7 @@ export default function Inadimplencias() {
   const [atualizacao, setAtualizacao] = useState(0);
   const [resumo, setResumo] = useState<ResumoInadimplencia | null>(null);
   const [erroResumo, setErroResumo] = useState('');
+  const [sucesso, setSucesso] = useState('');
 
   useEffect(() => {
     let ativo = true;
@@ -600,7 +692,14 @@ export default function Inadimplencias() {
 
   function mudarVisao(nova: Visao) {
     if (nova === 'cobrancas') setBuscaInicial('');
+    setSucesso('');
     setVisao(nova);
+  }
+
+  // Depois de registrar um pagamento, o resumo e a lista são recarregados.
+  function pagamentoRegistrado(mensagem: string) {
+    setSucesso(mensagem);
+    setAtualizacao((n) => n + 1);
   }
 
   const semVencidas = resumo !== null && resumo.cobrancasVencidas === 0;
@@ -622,13 +721,17 @@ export default function Inadimplencias() {
         <button
           className="button button--secondary"
           type="button"
-          onClick={() => setAtualizacao((n) => n + 1)}
+          onClick={() => {
+            setSucesso('');
+            setAtualizacao((n) => n + 1);
+          }}
         >
           ↻ Atualizar
         </button>
       </section>
 
       {erroResumo && <Feedback type="error" message={erroResumo} />}
+      {sucesso && <Feedback type="success" message={sucesso} />}
 
       <section className="inad-resumo" aria-label="Resumo financeiro">
         <div className="inad-resumo__item inad-resumo__item--destaque">
@@ -689,12 +792,14 @@ export default function Inadimplencias() {
             buscaInicial={buscaInicial}
             atualizacao={atualizacao}
             semVencidas={semVencidas}
+            onPagamento={pagamentoRegistrado}
           />
         ) : (
           <ListaClientes
             atualizacao={atualizacao}
             semVencidas={semVencidas}
             onVerCobrancas={verCobrancasDoCliente}
+            onPagamento={pagamentoRegistrado}
           />
         )}
       </div>

@@ -99,13 +99,14 @@ As regras e a API estão descritas em [`docs/PEDIDOS_PECAS.md`](docs/PEDIDOS_PEC
 
 ### Consultar inadimplências
 
-- quando o cliente **aceita um orçamento**, o valor total vira uma cobrança com vencimento em 15 dias;
+- quando o cliente **aceita um orçamento**, o valor total vira uma cobrança (em desenvolvimento ela já nasce vencida, para facilitar os testes; em produção vence em 15 dias, e `PRAZO_PAGAMENTO_DIAS` no `.env` troca isso);
 - cobrança pendente com vencimento passado é **inadimplente** (quem vence hoje ainda está em dia);
 - tela **Inadimplências** (menu Administração) com valor e data de vencimento, dias de atraso, cliente e veículo;
 - resumo com valor em atraso, cobranças vencidas, clientes inadimplentes, maior atraso e valor a vencer;
 - filtros por cliente, CPF ou placa, tempo de atraso, faixa de valor e período de vencimento;
 - ordenação por atraso, valor ou cliente;
 - aba **Clientes com valores em aberto**, com o total devido por cliente;
+- **Marcar como paga** (uma cobrança) e **Cliente pagou** (todas as vencidas do cliente): o cliente sai das duas abas;
 - cartão de cobranças em atraso na tela inicial do Administrador;
 - acesso restrito ao Administrador.
 
@@ -229,9 +230,9 @@ OficinaDS/
 │   ├── 21_acompanhamento_servicos.sql
 │   ├── 22_urgencia_atendimento.sql
 │   ├── 23_pecas_utilizadas.sql
-│   ├── 24_inadimplencias.sql
-│   ├── 25_dados_teste_inadimplencias.sql
-│   └── 26_consultas_para_estudar_inadimplencias.sql
+│   ├── 27_inadimplencias.sql
+│   ├── 28_dados_teste_inadimplencias.sql
+│   └── 29_consultas_para_estudar_inadimplencias.sql
 ├── docs/
 │   ├── DER_DO_MODULO.md
 │   ├── INADIMPLENCIAS.md
@@ -422,10 +423,10 @@ Execute os arquivos da pasta `database` como `root`, **nesta ordem**. A ordem im
 | 20 | `21_acompanhamento_servicos.sql` | previsão e atualização do progresso dos serviços |
 | 21 | `22_urgencia_atendimento.sql` | urgência baixa, média ou alta nos atendimentos |
 | 22 | `23_pecas_utilizadas.sql` | liga peças usadas ao estoque e à ordem de serviço |
-| 23 | `24_inadimplencias.sql` | tabela de cobranças e cobranças dos orçamentos já aceitos |
-| 24 | `25_dados_teste_inadimplencias.sql` | opcional: cobranças fictícias para testar a tela |
+| 23 | `27_inadimplencias.sql` | tabela de cobranças, permissão de pagamento e cobranças dos orçamentos já aceitos |
+| 24 | `28_dados_teste_inadimplencias.sql` | opcional: cobranças fictícias para testar a tela |
 
-Os arquivos `04_consultas_para_estudar.sql` e `26_consultas_para_estudar_inadimplencias.sql` são opcionais (só leitura) e contêm exemplos de consultas.
+Os arquivos `04_consultas_para_estudar.sql` e `29_consultas_para_estudar_inadimplencias.sql` são opcionais (só leitura) e contêm exemplos de consultas.
 
 Pelo terminal, rode um por vez:
 
@@ -452,8 +453,8 @@ mysql -u root -p --default-character-set=utf8mb4 < database/20_baixa_pecas_danif
 mysql -u root -p --default-character-set=utf8mb4 < database/21_acompanhamento_servicos.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/22_urgencia_atendimento.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/23_pecas_utilizadas.sql
-mysql -u root -p --default-character-set=utf8mb4 < database/24_inadimplencias.sql
-mysql -u root -p --default-character-set=utf8mb4 < database/25_dados_teste_inadimplencias.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/27_inadimplencias.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/28_dados_teste_inadimplencias.sql
 ```
 
 > No Windows, o `--default-character-set=utf8mb4` evita erros de codificação e acentos quebrados. Pare no primeiro erro e corrija antes de continuar. Se precisar recomeçar do zero, apague o banco com `DROP DATABASE oficina_ds;` e refaça a sequência. Repetir o `15_agendamentos.sql` recalcula as datas dos agendamentos de exemplo e apaga os reagendamentos que você tiver testado.
@@ -580,6 +581,8 @@ Todas as rotas, exceto `saude`, `cadastro` e `login`, exigem o cabeçalho `Autho
 | `GET` | `/api/financeiro/inadimplencias` | Admin | Cobranças vencidas (filtros, ordenação e paginação) |
 | `GET` | `/api/financeiro/inadimplencias/resumo` | Admin | Totais: valor em atraso, clientes, maior atraso e a vencer |
 | `GET` | `/api/financeiro/inadimplencias/clientes` | Admin | Clientes com valores em aberto e total devido |
+| `PATCH` | `/api/financeiro/inadimplencias/:id/pagamento` | Admin | Registra o pagamento de uma cobrança |
+| `PATCH` | `/api/financeiro/inadimplencias/clientes/:id/pagamento` | Admin | Registra o pagamento de todas as cobranças vencidas do cliente |
 | `GET` | `/api/atendimentos` | Equipe | Lista os atendimentos em andamento |
 | `POST` | `/api/atendimentos` | Equipe | Inclui um cliente na lista de atendimento |
 | `GET` | `/api/atendimentos/:id/pecas` | Equipe | Lista as peças utilizadas no atendimento |
@@ -731,7 +734,8 @@ Mais detalhes estão em [`docs/INTEGRACAO_EQUIPE.md`](docs/INTEGRACAO_EQUIPE.md)
 - [x] solicitar peças ao superior (criar, enviar, aprovar ou rejeitar);
 - [ ] dar baixa no estoque e registrar o recebimento das peças aprovadas;
 - [x] consultar inadimplências;
-- [ ] registrar o pagamento das cobranças e controle financeiro completo;
+- [x] registrar o pagamento das cobranças;
+- [ ] controle financeiro completo (juros, multa e lembretes);
 - [ ] avaliações, presença e relatórios.
 
 ## Boas práticas adotadas

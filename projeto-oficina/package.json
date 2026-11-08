@@ -1,0 +1,32 @@
+{
+  "name": "oficina-dm67-dm100",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Módulo da OficinaDS para consultar clientes e pesquisar funcionários.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node --test",
+    "check": "node --check src/server.js && node --check src/app.js",
+    "db:preparar": "node scripts/preparar-banco.js",
+    "db:demo": "node scripts/criar-usuarios-demo.js",
+    "build:frontend": "npm --prefix frontend install --include=dev && npm --prefix frontend run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^18.0.1",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "mysql2": "^3.15.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

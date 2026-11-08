@@ -26,6 +26,12 @@ simular('../src/repositories/cobrancasRepository', {
   async findClientesInadimplentes() {
     return { rows: [], total: 0 };
   },
+  async registrarPagamento() {
+    return { registrado: true, status: 'pago' };
+  },
+  async registrarPagamentoDoCliente() {
+    return 2;
+  },
   async resumoFinanceiro() {
     return { valorVencido: 0, cobrancasVencidas: 0, clientesInadimplentes: 0, maiorAtrasoDias: 0, valorAVencer: 0 };
   }
@@ -86,6 +92,57 @@ test('filtro inválido responde 400 para o Administrador', async (t) => {
   const base = await iniciar(t);
 
   const resposta = await fetch(`${base}/api/financeiro/inadimplencias?faixaAtraso=xyz`, {
+    headers: cabecalho(1)
+  });
+
+  assert.equal(resposta.status, 400);
+});
+
+const ROTAS_DE_PAGAMENTO = [
+  '/api/financeiro/inadimplencias/12/pagamento',
+  '/api/financeiro/inadimplencias/clientes/4/pagamento'
+];
+
+test('registrar pagamento exige login', async (t) => {
+  const base = await iniciar(t);
+
+  for (const caminho of ROTAS_DE_PAGAMENTO) {
+    const resposta = await fetch(`${base}${caminho}`, { method: 'PATCH' });
+    assert.equal(resposta.status, 401, caminho);
+  }
+});
+
+test('Funcionario e Cliente não registram pagamento (403)', async (t) => {
+  const base = await iniciar(t);
+
+  for (const idUsuario of [2, 3]) {
+    for (const caminho of ROTAS_DE_PAGAMENTO) {
+      const resposta = await fetch(`${base}${caminho}`, {
+        method: 'PATCH',
+        headers: cabecalho(idUsuario)
+      });
+      assert.equal(resposta.status, 403, `${caminho} (usuário ${idUsuario})`);
+    }
+  }
+});
+
+test('Administrador registra pagamento (200)', async (t) => {
+  const base = await iniciar(t);
+
+  for (const caminho of ROTAS_DE_PAGAMENTO) {
+    const resposta = await fetch(`${base}${caminho}`, {
+      method: 'PATCH',
+      headers: cabecalho(1)
+    });
+    assert.equal(resposta.status, 200, caminho);
+  }
+});
+
+test('id inválido no pagamento responde 400', async (t) => {
+  const base = await iniciar(t);
+
+  const resposta = await fetch(`${base}/api/financeiro/inadimplencias/abc/pagamento`, {
+    method: 'PATCH',
     headers: cabecalho(1)
   });
 

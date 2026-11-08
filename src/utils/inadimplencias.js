@@ -1,7 +1,29 @@
 const { ValidationError } = require('./queryParams');
 
-// Prazo para pagar depois que o cliente aceita o orçamento.
-const PRAZO_PAGAMENTO_DIAS = 15;
+// Prazo, em dias a partir do aceite, para o cliente pagar o orçamento.
+// - Produção: 15 dias.
+// - Demais ambientes: -1, ou seja, a cobrança já nasce vencida (com 1 dia de atraso)
+//   para facilitar os testes da tela de inadimplências.
+// - PRAZO_PAGAMENTO_DIAS no .env troca o padrão (de -365 a 365).
+const PRAZO_PADRAO_PRODUCAO = 15;
+const PRAZO_PADRAO_TESTE = -1;
+const PRAZO_MAXIMO_DIAS = 365;
+
+function lerPrazoPagamento(valor, producao) {
+  const texto = String(valor ?? '').trim();
+
+  if (texto === '') {
+    return producao ? PRAZO_PADRAO_PRODUCAO : PRAZO_PADRAO_TESTE;
+  }
+
+  if (!/^-?\d+$/.test(texto) || Math.abs(Number(texto)) > PRAZO_MAXIMO_DIAS) {
+    throw new Error(
+      `PRAZO_PAGAMENTO_DIAS deve ser um número inteiro de -${PRAZO_MAXIMO_DIAS} a ${PRAZO_MAXIMO_DIAS}.`
+    );
+  }
+
+  return Number(texto);
+}
 
 // Faixas de atraso, em dias corridos depois do vencimento.
 const FAIXAS_ATRASO = Object.freeze({
@@ -114,7 +136,8 @@ function parseClientesInadimplentesFilters(query) {
 }
 
 module.exports = {
-  PRAZO_PAGAMENTO_DIAS,
+  PRAZO_MAXIMO_DIAS,
+  lerPrazoPagamento,
   FAIXAS_ATRASO,
   ORDENACOES_COBRANCAS,
   ORDENACOES_CLIENTES,

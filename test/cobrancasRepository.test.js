@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 const databasePath = require.resolve('../src/config/database');
 const calls = [];
 let resultadoInsert = { affectedRows: 1 };
+let resultadoUpdate = { affectedRows: 1 };
+let statusAtual = [];
 
 require.cache[databasePath] = {
   id: databasePath,
@@ -15,6 +17,8 @@ require.cache[databasePath] = {
         calls.push({ sql, params });
 
         if (sql.includes('INSERT INTO cobranca')) return [resultadoInsert];
+        if (sql.includes('UPDATE cobranca')) return [resultadoUpdate];
+        if (sql.includes('SELECT status FROM cobranca')) return [statusAtual];
         if (sql.includes('COUNT(DISTINCT c.id_cliente) AS total')) return [[{ total: 1 }]];
         if (sql.includes('GROUP BY cl.id_cliente')) {
           return [[{
@@ -171,9 +175,57 @@ test('criarParaOrcamentoAceito só cria para orçamento aceito e sem cobrança',
   assert.equal(await cobrancasRepository.criarParaOrcamentoAceito(7, 15), false);
 });
 
+test('criarParaOrcamentoAceito aceita prazo negativo (cobrança já nasce vencida)', async () => {
+  calls.length = 0;
+  resultadoInsert = { affectedRows: 1 };
+
+  assert.equal(await cobrancasRepository.criarParaOrcamentoAceito(7, -1), true);
+  assert.match(calls[0].sql, /INTERVAL -1 DAY/);
+});
+
 test('criarParaOrcamentoAceito rejeita prazo inválido', async () => {
   await assert.rejects(() => cobrancasRepository.criarParaOrcamentoAceito(1, '1; DROP'), RangeError);
-  await assert.rejects(() => cobrancasRepository.criarParaOrcamentoAceito(1, -1), RangeError);
+  await assert.rejects(() => cobrancasRepository.criarParaOrcamentoAceito(1, 1.5), RangeError);
+  await assert.rejects(() => cobrancasRepository.criarParaOrcamentoAceito(1, -366), RangeError);
+  await assert.rejects(() => cobrancasRepository.criarParaOrcamentoAceito(1, 366), RangeError);
+});
+
+test('registrarPagamento só altera cobrança pendente', async () => {
+  calls.length = 0;
+  resultadoUpdate = { affectedRows: 1 };
+
+  assert.deepEqual(await cobrancasRepository.registrarPagamento(12), {
+    registrado: true,
+    status: 'pago'
+  });
+  assert.match(calls[0].sql, /SET status = 'pago', data_pagamento = NOW\(\)/);
+  assert.match(calls[0].sql, /status = 'pendente'/);
+  assert.deepEqual(calls[0].params, [12]);
+  assert.equal(calls.length, 1);
+});
+
+test('registrarPagamento informa a situação quando nada foi alterado', async () => {
+  resultadoUpdate = { affectedRows: 0 };
+
+  statusAtual = [{ status: 'pago' }];
+  assert.deepEqual(await cobrancasRepository.registrarPagamento(12), { registrado: false, status: 'pago' });
+
+  statusAtual = [{ status: 'cancelado' }];
+  assert.deepEqual(await cobrancasRepository.registrarPagamento(12), { registrado: false, status: 'cancelado' });
+
+  statusAtual = [];
+  assert.deepEqual(await cobrancasRepository.registrarPagamento(99), { registrado: false, status: null });
+});
+
+test('registrarPagamentoDoCliente quita só as cobranças vencidas do cliente', async () => {
+  calls.length = 0;
+  resultadoUpdate = { affectedRows: 3 };
+
+  assert.equal(await cobrancasRepository.registrarPagamentoDoCliente(4), 3);
+  assert.match(calls[0].sql, /c\.id_cliente = \?/);
+  assert.match(calls[0].sql, /c\.status = 'pendente'/);
+  assert.match(calls[0].sql, /c\.data_vencimento < CURDATE\(\)/);
+  assert.deepEqual(calls[0].params, [4]);
 });
 
 test('contagemVencidas resume a quantidade e o valor para o painel', async () => {

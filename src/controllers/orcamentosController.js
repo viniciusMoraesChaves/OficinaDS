@@ -10,7 +10,7 @@ const {
   validarOrdenacaoUrgencia
 } = require('../utils/urgencia');
 const { PERFIS } = require('../utils/perfis');
-const { PRAZO_PAGAMENTO_DIAS } = require('../utils/inadimplencias');
+const env = require('../config/env');
 
 async function criarAtendimento(req, res) {
   const idCliente = Number(req.body.idCliente);
@@ -268,12 +268,12 @@ async function enviarOrcamento(req, res) {
 
 // O orçamento aceito vira um valor a receber (Financeiro > Inadimplências).
 // A decisão do cliente já está salva, então uma falha aqui não pode desfazê-la:
-// o erro vai para o terminal e o script 24 recria a cobrança que faltar.
+// o erro vai para o terminal e o script 27 recria a cobrança que faltar.
 async function gerarCobranca(idOrcamento) {
   try {
     await cobrancasRepository.criarParaOrcamentoAceito(
       idOrcamento,
-      PRAZO_PAGAMENTO_DIAS
+      env.prazoPagamentoDias
     );
   } catch (error) {
     console.error(`Não foi possível gerar a cobrança do orçamento ${idOrcamento}.`, error);

@@ -1,13 +1,31 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  PRAZO_PAGAMENTO_DIAS,
+  lerPrazoPagamento,
   parseInadimplenciaFilters,
   parseClientesInadimplentesFilters
 } = require('../src/utils/inadimplencias');
 
-test('prazo de pagamento do orçamento aceito é de 15 dias', () => {
-  assert.equal(PRAZO_PAGAMENTO_DIAS, 15);
+test('prazo de pagamento: fora de produção a cobrança já nasce vencida (-1)', () => {
+  assert.equal(lerPrazoPagamento(undefined, false), -1);
+  assert.equal(lerPrazoPagamento('', false), -1);
+});
+
+test('prazo de pagamento: em produção o padrão é de 15 dias', () => {
+  assert.equal(lerPrazoPagamento(undefined, true), 15);
+});
+
+test('prazo de pagamento: o valor do .env vale em qualquer ambiente', () => {
+  assert.equal(lerPrazoPagamento('15', false), 15);
+  assert.equal(lerPrazoPagamento(' 30 ', true), 30);
+  assert.equal(lerPrazoPagamento('0', true), 0);
+  assert.equal(lerPrazoPagamento('-5', true), -5);
+});
+
+test('prazo de pagamento: valor inválido impede a aplicação de subir', () => {
+  for (const valor of ['abc', '1.5', '999', '-366', '1e2']) {
+    assert.throws(() => lerPrazoPagamento(valor, false), /PRAZO_PAGAMENTO_DIAS/, valor);
+  }
 });
 
 test('parseInadimplenciaFilters usa os valores padrão', () => {

@@ -7,6 +7,8 @@ function simular(caminho, exports) {
 }
 
 const chamadas = [];
+let pagamento = { registrado: true, status: 'pago' };
+let quitadasDoCliente = 2;
 
 simular('../src/repositories/cobrancasRepository', {
   async findInadimplentes(opcoes) {
@@ -19,6 +21,14 @@ simular('../src/repositories/cobrancasRepository', {
   },
   async resumoFinanceiro() {
     return { valorVencido: 9800, cobrancasVencidas: 21, clientesInadimplentes: 6, maiorAtrasoDias: 100, valorAVencer: 90 };
+  },
+  async registrarPagamento(id) {
+    chamadas.push(['registrarPagamento', id]);
+    return pagamento;
+  },
+  async registrarPagamentoDoCliente(id) {
+    chamadas.push(['registrarPagamentoDoCliente', id]);
+    return quitadasDoCliente;
   },
   async criarParaOrcamentoAceito(idOrcamento, prazo) {
     chamadas.push(['criarParaOrcamentoAceito', idOrcamento, prazo]);
@@ -44,6 +54,7 @@ simular('../src/repositories/clientesRepository', {
 
 simular('../src/repositories/funcionariosRepository', {});
 
+const env = require('../src/config/env');
 const inadimplencias = require('../src/controllers/inadimplenciasController');
 const { decidirOrcamento } = require('../src/controllers/orcamentosController');
 
@@ -107,7 +118,7 @@ test('resumo devolve os totais financeiros', async () => {
   assert.equal(res.corpo.dados.clientesInadimplentes, 6);
 });
 
-test('aceitar um orçamento gera a cobrança com o prazo de 15 dias', async () => {
+test('aceitar um orçamento gera a cobrança com o prazo configurado', async () => {
   chamadas.length = 0;
   const res = resposta();
 
@@ -116,7 +127,7 @@ test('aceitar um orçamento gera a cobrança com o prazo de 15 dias', async () =
     res
   );
 
-  assert.deepEqual(chamadas, [['criarParaOrcamentoAceito', 7, 15]]);
+  assert.deepEqual(chamadas, [['criarParaOrcamentoAceito', 7, env.prazoPagamentoDias]]);
   assert.equal(res.corpo.mensagem, 'Orçamento aceito.');
 });
 
@@ -144,4 +155,78 @@ test('falha ao gerar a cobrança não desfaz o aceite do cliente', async (t) => 
 
   assert.equal(res.statusCode, 200);
   assert.equal(res.corpo.mensagem, 'Orçamento aceito.');
+});
+
+test('registrarPagamento registra e responde 200', async () => {
+  chamadas.length = 0;
+  pagamento = { registrado: true, status: 'pago' };
+  const res = resposta();
+
+  await inadimplencias.registrarPagamento({ params: { id: '12' } }, res);
+
+  assert.deepEqual(chamadas, [['registrarPagamento', 12]]);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.corpo.mensagem, 'Pagamento registrado.');
+});
+
+test('registrarPagamento responde 404 quando a cobrança não existe', async () => {
+  pagamento = { registrado: false, status: null };
+  const res = resposta();
+
+  await inadimplencias.registrarPagamento({ params: { id: '99' } }, res);
+
+  assert.equal(res.statusCode, 404);
+  assert.equal(res.corpo.erro, 'COBRANCA_NAO_ENCONTRADA');
+});
+
+test('registrarPagamento responde 409 para cobrança já paga ou cancelada', async () => {
+  pagamento = { registrado: false, status: 'pago' };
+  await assert.rejects(
+    () => inadimplencias.registrarPagamento({ params: { id: '12' } }, resposta()),
+    { statusCode: 409, message: 'Esta cobrança já está paga.' }
+  );
+
+  pagamento = { registrado: false, status: 'cancelado' };
+  await assert.rejects(
+    () => inadimplencias.registrarPagamento({ params: { id: '12' } }, resposta()),
+    { statusCode: 409, message: /cancelada/ }
+  );
+});
+
+test('registrarPagamento rejeita id inválido com 400, sem tocar no banco', async () => {
+  chamadas.length = 0;
+
+  for (const id of ['abc', '0', '-1', '1.5']) {
+    await assert.rejects(
+      () => inadimplencias.registrarPagamento({ params: { id } }, resposta()),
+      { statusCode: 400 },
+      id
+    );
+  }
+  assert.equal(chamadas.length, 0);
+});
+
+test('registrarPagamentoCliente informa quantas cobranças foram quitadas', async () => {
+  chamadas.length = 0;
+  const res = resposta();
+
+  quitadasDoCliente = 2;
+  await inadimplencias.registrarPagamentoCliente({ params: { id: '4' } }, res);
+  assert.deepEqual(chamadas, [['registrarPagamentoDoCliente', 4]]);
+  assert.equal(res.corpo.quantidade, 2);
+  assert.equal(res.corpo.mensagem, 'Pagamento de 2 cobranças registrado.');
+
+  quitadasDoCliente = 1;
+  const um = resposta();
+  await inadimplencias.registrarPagamentoCliente({ params: { id: '4' } }, um);
+  assert.equal(um.corpo.mensagem, 'Pagamento de 1 cobrança registrado.');
+});
+
+test('registrarPagamentoCliente responde 409 quando o cliente não deve nada vencido', async () => {
+  quitadasDoCliente = 0;
+
+  await assert.rejects(
+    () => inadimplencias.registrarPagamentoCliente({ params: { id: '4' } }, resposta()),
+    { statusCode: 409 }
+  );
 });

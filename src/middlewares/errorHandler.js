@@ -43,14 +43,14 @@ function errorHandler(error, req, res, next) {
   if (error.code === 'ER_TABLEACCESS_DENIED_ERROR' || error.code === 'ER_COLUMNACCESS_DENIED_ERROR') {
     return res.status(503).json({
       erro: 'PERMISSAO_BANCO_NEGADA',
-      mensagem: 'O usuário do banco não tem permissão para esta operação. Execute os scripts de grants da pasta database (até o 12).'
+      mensagem: 'O usuário do banco não tem permissão para esta operação. Execute os scripts da pasta database na ordem do README (os grants ficam em vários scripts, como o 27_inadimplencias.sql do pagamento de cobranças).'
     });
   }
 
   if (error.code === 'ER_NO_SUCH_TABLE') {
     return res.status(503).json({
       erro: 'TABELA_NAO_ENCONTRADA',
-      mensagem: 'Falta uma tabela no banco. Execute os scripts da pasta database na ordem do README (inclusive o 24_inadimplencias.sql).'
+      mensagem: 'Falta uma tabela no banco. Execute os scripts da pasta database na ordem do README (inclusive o 27_inadimplencias.sql).'
     });
   }
 

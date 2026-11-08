@@ -1,5 +1,5 @@
 const { pool } = require('../config/database');
-const { FAIXAS_ATRASO } = require('../utils/inadimplencias');
+const { FAIXAS_ATRASO, PRAZO_MAXIMO_DIAS } = require('../utils/inadimplencias');
 
 // Inadimplente = cobrança ainda pendente cujo vencimento já passou.
 // Quem vence hoje ainda está em dia. O atraso é calculado na consulta, então
@@ -225,10 +225,11 @@ async function resumoFinanceiro() {
 }
 
 // Chamado quando o cliente aceita o orçamento: o valor total vira uma cobrança
-// com vencimento daqui a `prazoDias`. Se já existir cobrança do orçamento, não duplica.
+// com vencimento daqui a `prazoDias` (negativo = já nasce vencida, usado nos testes).
+// Se já existir cobrança do orçamento, não duplica.
 async function criarParaOrcamentoAceito(idOrcamento, prazoDias) {
-  if (!Number.isInteger(prazoDias) || prazoDias < 0 || prazoDias > 365) {
-    throw new RangeError('prazoDias deve ser um inteiro entre 0 e 365.');
+  if (!Number.isInteger(prazoDias) || Math.abs(prazoDias) > PRAZO_MAXIMO_DIAS) {
+    throw new RangeError(`prazoDias deve ser um inteiro de -${PRAZO_MAXIMO_DIAS} a ${PRAZO_MAXIMO_DIAS}.`);
   }
 
   const [resultado] = await pool.execute(
@@ -253,6 +254,42 @@ async function criarParaOrcamentoAceito(idOrcamento, prazoDias) {
   return resultado.affectedRows > 0;
 }
 
+// "Cliente pagou": marca uma cobrança pendente como paga. O UPDATE só vale para cobrança
+// ainda pendente, então duas pessoas clicando ao mesmo tempo não registram o pagamento duas vezes.
+// Devolve { registrado: true } ou, quando nada mudou, a situação encontrada.
+async function registrarPagamento(idCobranca) {
+  const [resultado] = await pool.execute(
+    `UPDATE cobranca
+     SET status = 'pago', data_pagamento = NOW()
+     WHERE id_cobranca = ? AND status = 'pendente'`,
+    [idCobranca]
+  );
+
+  if (resultado.affectedRows > 0) {
+    return { registrado: true, status: 'pago' };
+  }
+
+  const [rows] = await pool.execute(
+    'SELECT status FROM cobranca WHERE id_cobranca = ?',
+    [idCobranca]
+  );
+
+  return { registrado: false, status: rows.length > 0 ? rows[0].status : null };
+}
+
+// "Cliente pagou" na aba de clientes: quita de uma vez todas as cobranças vencidas dele.
+// As que ainda não venceram continuam pendentes. Devolve quantas foram quitadas.
+async function registrarPagamentoDoCliente(idCliente) {
+  const [resultado] = await pool.execute(
+    `UPDATE cobranca c
+     SET c.status = 'pago', c.data_pagamento = NOW()
+     WHERE c.id_cliente = ? AND ${VENCIDA_SQL}`,
+    [idCliente]
+  );
+
+  return resultado.affectedRows;
+}
+
 // Resumo usado pelo painel inicial do Administrador.
 async function contagemVencidas() {
   const [rows] = await pool.execute(
@@ -270,5 +307,7 @@ module.exports = {
   findClientesInadimplentes,
   resumoFinanceiro,
   criarParaOrcamentoAceito,
+  registrarPagamento,
+  registrarPagamentoDoCliente,
   contagemVencidas
 };

@@ -109,6 +109,13 @@
   background: var(--surface);
 }
 
+.inad-linha-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .inad-link {
   color: var(--blue);
   text-decoration: none;
