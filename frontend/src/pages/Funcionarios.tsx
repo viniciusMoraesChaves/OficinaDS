@@ -7,7 +7,9 @@ import { apiFetch } from '../services/api';
 import { formatCpf, formatDate, formatPhone } from '../utils/format';
 import type {
   Funcionario,
+  FuncionarioDetalhado,
   ListaFuncionariosResponse,
+  ServicoFuncionario,
   StatusFiltro,
 } from '../types/funcionario';
 import type { Paginacao } from '../types/cliente';
@@ -17,6 +19,16 @@ const LIMITE = 8;
 
 type Filtros = { busca: string; status: StatusFiltro };
 const FILTROS_INICIAIS: Filtros = { busca: '', status: 'todos' };
+
+type EdicaoFuncionario = {
+  nome: string;
+  cpf: string;
+  email: string;
+  telefone: string;
+  dataAdmissao: string;
+  idCargo: string;
+  ativo: boolean;
+};
 
 export default function Funcionarios() {
   // o que está no formulário
@@ -34,10 +46,11 @@ export default function Funcionarios() {
   const [error, setError] = useState('');
   const [funcionarioSelecionado, setFuncionarioSelecionado] =
   useState<Funcionario | null>(null);
-  const [cargoSelecionado, setCargoSelecionado] = useState<number | null>(null);
-  const [salvandoCargo, setSalvandoCargo] = useState(false);
-  const [erroCargo, setErroCargo] = useState('');
-  const [listaCargosAberta, setListaCargosAberta] = useState(false);
+  const [edicaoFuncionario, setEdicaoFuncionario] = useState<EdicaoFuncionario | null>(null);
+  const [servicosFuncionario, setServicosFuncionario] = useState<ServicoFuncionario[]>([]);
+  const [carregandoDetalhes, setCarregandoDetalhes] = useState(false);
+  const [salvandoFuncionario, setSalvandoFuncionario] = useState(false);
+  const [erroEdicao, setErroEdicao] = useState('');
   const [modalNovoCargoAberto, setModalNovoCargoAberto] = useState(false);
   const [nomeNovoCargo, setNomeNovoCargo] = useState('');
   const [descricaoNovoCargo, setDescricaoNovoCargo] = useState('');
@@ -169,56 +182,79 @@ export default function Funcionarios() {
       : `${total} funcionário${total === 1 ? '' : 's'} no total`;
   }
 
-  function handleEditarFuncionario(funcionario: Funcionario) {
+  async function handleEditarFuncionario(funcionario: Funcionario) {
     setFuncionarioSelecionado(funcionario);
-    setCargoSelecionado(funcionario.cargoId);
+    setEdicaoFuncionario({
+      nome: funcionario.nome,
+      cpf: funcionario.cpf,
+      email: funcionario.email,
+      telefone: funcionario.telefone || '',
+      dataAdmissao: String(funcionario.dataAdmissao).slice(0, 10),
+      idCargo: String(funcionario.cargoId),
+      ativo: Boolean(funcionario.ativo),
+    });
+    setServicosFuncionario([]);
+    setErroEdicao('');
+    setCarregandoDetalhes(true);
+
+    try {
+      const resposta = await apiFetch<{ dados: FuncionarioDetalhado }>(
+        `/api/funcionarios/${funcionario.id}`
+      );
+      const detalhe = resposta.dados;
+      setEdicaoFuncionario({
+        nome: detalhe.nome,
+        cpf: detalhe.cpf,
+        email: detalhe.email,
+        telefone: detalhe.telefone || '',
+        dataAdmissao: detalhe.dataAdmissao.slice(0, 10),
+        idCargo: String(detalhe.cargoId),
+        ativo: Boolean(detalhe.ativo),
+      });
+      setServicosFuncionario(detalhe.servicos);
+    } catch (err) {
+      setErroEdicao(err instanceof Error ? err.message : 'Erro ao carregar funcionário.');
+    } finally {
+      setCarregandoDetalhes(false);
+    }
   }
-  async function handleSalvarCargo() {
-    if (!funcionarioSelecionado || cargoSelecionado === null) {
+
+  async function handleSalvarFuncionario(event: FormEvent) {
+    event.preventDefault();
+    if (!funcionarioSelecionado || !edicaoFuncionario) return;
+
+    if (!edicaoFuncionario.nome.trim()) {
+      setErroEdicao('Informe o nome do funcionário.');
       return;
     }
 
-    setSalvandoCargo(true);
-    setErroCargo('');
+    if (edicaoFuncionario.cpf.replace(/\D/g, '').length !== 11) {
+      setErroEdicao('Informe um CPF válido com 11 dígitos.');
+      return;
+    }
+
+    setSalvandoFuncionario(true);
+    setErroEdicao('');
 
     try {
-      await apiFetch(
-        `/api/funcionarios/${funcionarioSelecionado.id}/cargo`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            idCargo: cargoSelecionado
-          })
-        }
-      );
-      const cargoAtualizado = cargos.find(
-        (cargo) => cargo.id === cargoSelecionado
-      );
-
-      if (cargoAtualizado) {
-        setFuncionarios((atuais) =>
-          atuais.map((funcionario) =>
-            funcionario.id === funcionarioSelecionado.id
-              ? {
-                  ...funcionario,
-                  cargoId: cargoAtualizado.id,
-                  cargo: cargoAtualizado.nome
-                }
-              : funcionario
-          )
-        );
-      }
+      await apiFetch(`/api/funcionarios/${funcionarioSelecionado.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...edicaoFuncionario,
+          nome: edicaoFuncionario.nome.trim(),
+          cpf: edicaoFuncionario.cpf,
+          email: edicaoFuncionario.email.trim(),
+          telefone: edicaoFuncionario.telefone.trim(),
+          idCargo: Number(edicaoFuncionario.idCargo),
+        }),
+      });
 
       dialogRef.current?.close();
+      setRecarregar((valor) => valor + 1);
     } catch (err) {
-      setErroCargo(
-        err instanceof Error ? err.message : 'Erro ao atualizar cargo.'
-      );
+      setErroEdicao(err instanceof Error ? err.message : 'Erro ao atualizar funcionário.');
     } finally {
-      setSalvandoCargo(false);
+      setSalvandoFuncionario(false);
     }
   }
 
@@ -471,105 +507,181 @@ export default function Funcionarios() {
         )}
       </section>
       {funcionarioSelecionado && (
-        <dialog 
+        <dialog
           ref={dialogRef}
-          className="dialog dialog--cargo"
+          className="dialog dialog--employee"
           onClose={() => {
             setFuncionarioSelecionado(null);
-            setCargoSelecionado(null);
+            setEdicaoFuncionario(null);
+            setServicosFuncionario([]);
           }}
         >
           <div className="dialog__header">
-            <h2>Editar cargo</h2>
+            <h2>Administrar funcionário</h2>
 
             <button
               className="dialog__close"
               type="button"
               onClick={() => dialogRef.current?.close()}
               aria-label="Fechar"
+              disabled={salvandoFuncionario}
             >
               ×
             </button>
           </div>
 
-          <div className="dialog__body">
-            <div className="field">
-              <label htmlFor="cargo-funcionario">
-                Cargo de {funcionarioSelecionado.nome}
-              </label>
+          {edicaoFuncionario && (
+            <form className="dialog__body employee-admin" onSubmit={handleSalvarFuncionario}>
+              {carregandoDetalhes && (
+                <Feedback type="loading" message="Carregando dados e serviços..." />
+              )}
 
-              <div className="cargo-select">
-                <button
-                  className="cargo-select__button"
-                  type="button"
-                  onClick={() => setListaCargosAberta((aberta) => !aberta)}
-                >
+              <div className="employee-form-grid">
+                <div className="field employee-form-grid__wide">
+                  <label htmlFor="editar-func-nome">Nome</label>
+                  <input
+                    id="editar-func-nome"
+                    type="text"
+                    maxLength={120}
+                    value={edicaoFuncionario.nome}
+                    onChange={(e) => setEdicaoFuncionario({ ...edicaoFuncionario, nome: e.target.value })}
+                    disabled={salvandoFuncionario}
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="editar-func-cpf">CPF</label>
+                  <input
+                    id="editar-func-cpf"
+                    type="text"
+                    maxLength={14}
+                    value={edicaoFuncionario.cpf}
+                    onChange={(e) => setEdicaoFuncionario({ ...edicaoFuncionario, cpf: e.target.value })}
+                    disabled={salvandoFuncionario}
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="editar-func-telefone">Telefone</label>
+                  <input
+                    id="editar-func-telefone"
+                    type="text"
+                    maxLength={20}
+                    value={edicaoFuncionario.telefone}
+                    onChange={(e) => setEdicaoFuncionario({ ...edicaoFuncionario, telefone: e.target.value })}
+                    disabled={salvandoFuncionario}
+                  />
+                </div>
+
+                <div className="field employee-form-grid__wide">
+                  <label htmlFor="editar-func-email">E-mail de acesso</label>
+                  <input
+                    id="editar-func-email"
+                    type="email"
+                    maxLength={150}
+                    value={edicaoFuncionario.email}
+                    onChange={(e) => setEdicaoFuncionario({ ...edicaoFuncionario, email: e.target.value })}
+                    disabled={salvandoFuncionario}
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="editar-func-admissao">Data de admissão</label>
+                  <input
+                    id="editar-func-admissao"
+                    type="date"
+                    value={edicaoFuncionario.dataAdmissao}
+                    onChange={(e) => setEdicaoFuncionario({ ...edicaoFuncionario, dataAdmissao: e.target.value })}
+                    disabled={salvandoFuncionario}
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="editar-func-cargo">Cargo</label>
+                  <select
+                    id="editar-func-cargo"
+                    value={edicaoFuncionario.idCargo}
+                    onChange={(e) => setEdicaoFuncionario({ ...edicaoFuncionario, idCargo: e.target.value })}
+                    disabled={salvandoFuncionario}
+                    required
+                  >
+                    <option value="">Selecione um cargo</option>
+                    {cargos.map((cargo) => (
+                      <option key={cargo.id} value={cargo.id}>{cargo.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="employee-active-toggle employee-form-grid__wide">
+                  <input
+                    type="checkbox"
+                    checked={edicaoFuncionario.ativo}
+                    onChange={(e) => setEdicaoFuncionario({ ...edicaoFuncionario, ativo: e.target.checked })}
+                    disabled={salvandoFuncionario}
+                  />
                   <span>
-                    {cargos.find((cargo) => cargo.id === cargoSelecionado)?.nome ??
-                      'Selecione um cargo'}
+                    <strong>Funcionário ativo</strong>
+                    <small>Inativos permanecem no histórico, mas não recebem novos serviços.</small>
                   </span>
+                </label>
+              </div>
 
-                  <span className="cargo-select__arrow">
-                    {listaCargosAberta ? '▲' : '▼'}
-                  </span>
+              <section className="employee-services" aria-labelledby="servicos-funcionario-title">
+                <div className="employee-services__header">
+                  <div>
+                    <h3 id="servicos-funcionario-title">Serviços atribuídos</h3>
+                    <p>Agendamentos e atendimentos vinculados a este profissional.</p>
+                  </div>
+                  <span>{servicosFuncionario.length}</span>
+                </div>
+
+                {!carregandoDetalhes && servicosFuncionario.length === 0 && (
+                  <p className="employee-services__empty">Nenhum serviço atribuído.</p>
+                )}
+
+                <div className="employee-services__list">
+                  {servicosFuncionario.map((servico) => (
+                    <article className="employee-service" key={`${servico.tipo}-${servico.referencia}`}>
+                      <div>
+                        <span className="order-code">{servico.referencia}</span>
+                        <strong>{servico.servico}</strong>
+                        <small>{servico.veiculo}</small>
+                      </div>
+                      <div className="employee-service__meta">
+                        <span>{servico.status}</span>
+                        <small>{formatDate(servico.dataHora)}</small>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              {erroEdicao && <Feedback type="error" message={erroEdicao} />}
+
+              <div className="dialog__actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => dialogRef.current?.close()}
+                  disabled={salvandoFuncionario}
+                >
+                  Fechar
                 </button>
 
-                {listaCargosAberta && (
-                  <div className="cargo-select__options">
-                    {cargos.map((cargo) => (
-                      <button
-                        key={cargo.id}
-                        className={
-                          cargo.id === cargoSelecionado
-                            ? 'cargo-select__option cargo-select__option--selected'
-                            : 'cargo-select__option'
-                        }
-                        type="button"
-                        onClick={() => {
-                          setCargoSelecionado(cargo.id);
-                          setListaCargosAberta(false);
-                        }}
-                      >
-                        {cargo.nome}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <button
+                  className="button button--primary"
+                  type="submit"
+                  disabled={salvandoFuncionario || carregandoDetalhes}
+                >
+                  {salvandoFuncionario ? 'Salvando...' : 'Salvar alterações'}
+                </button>
               </div>
-            </div>
-            {erroCargo && (
-              <Feedback
-                type="error"
-                message={erroCargo}
-              />
-            )}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '10px',
-                marginTop: '20px'
-              }}
-            >
-              <button
-                className="button button--secondary"
-                type="button"
-                onClick={() => dialogRef.current?.close()}
-                disabled={salvandoCargo}
-              >
-                Cancelar
-              </button>
-
-              <button
-                className="button button--primary"
-                type="button"
-                onClick={handleSalvarCargo}
-                disabled={salvandoCargo}
-              >
-                {salvandoCargo ? 'Salvando...' : 'Salvar'}
-              </button>
-            </div>
-          </div>
+            </form>
+          )}
         </dialog>
       )}
         {modalNovoCargoAberto && (

@@ -24,3 +24,16 @@ export type FuncionarioOpcao = {
   nome: string;
   cargo: string;
 };
+
+export type ServicoFuncionario = {
+  referencia: string;
+  tipo: 'Agendamento' | 'Atendimento';
+  servico: string;
+  dataHora: string;
+  status: string;
+  veiculo: string;
+};
+
+export type FuncionarioDetalhado = Funcionario & {
+  servicos: ServicoFuncionario[];
+};

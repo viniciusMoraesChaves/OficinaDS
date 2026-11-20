@@ -156,6 +156,128 @@ async function listarAtivos() {
   return rows;
 }
 
+async function findById(idFuncionario) {
+  const [rows] = await pool.execute(
+    `SELECT
+       f.id_funcionario AS id,
+       f.nome,
+       f.cpf,
+       f.email,
+       f.telefone,
+       DATE_FORMAT(f.data_admissao, '%Y-%m-%d') AS dataAdmissao,
+       f.ativo,
+       ca.id_cargo AS cargoId,
+       ca.nome AS cargo
+     FROM funcionario f
+     INNER JOIN cargo ca ON ca.id_cargo = f.id_cargo
+     WHERE f.id_funcionario = ?`,
+    [idFuncionario]
+  );
+
+  return rows[0] || null;
+}
+
+// Reúne serviços agendados e atendimentos da oficina sem perder o histórico.
+// O status em cada item deixa claro o que ainda está atribuído e o que já acabou.
+async function listarServicosAtribuidos(idFuncionario) {
+  const [rows] = await pool.execute(
+    `SELECT * FROM (
+       SELECT
+         CONCAT('AG-', ag.id_agendamento) AS referencia,
+         'Agendamento' AS tipo,
+         ag.servico,
+         DATE_FORMAT(ag.data_hora, '%Y-%m-%dT%H:%i:%s') AS dataHora,
+         ag.status,
+         CONCAT(v.marca, ' ', v.modelo, ' • ', v.placa) AS veiculo
+       FROM agendamento ag
+       INNER JOIN veiculo v ON v.id_veiculo = ag.id_veiculo
+       WHERE ag.id_funcionario = ?
+
+       UNION ALL
+
+       SELECT
+         CONCAT('AT-', a.id_atendimento) AS referencia,
+         'Atendimento' AS tipo,
+         COALESCE(NULLIF(os.descricao_problema, ''), CONCAT('Atendimento #', a.id_atendimento)) AS servico,
+         DATE_FORMAT(a.criado_em, '%Y-%m-%dT%H:%i:%s') AS dataHora,
+         CASE a.status
+           WHEN 'aberto' THEN 'Em atendimento'
+           WHEN 'concluido' THEN 'Concluído'
+           ELSE 'Cancelado'
+         END AS status,
+         CONCAT(v.marca, ' ', v.modelo, ' • ', v.placa) AS veiculo
+       FROM atendimento a
+       INNER JOIN veiculo v ON v.id_veiculo = a.id_veiculo
+       LEFT JOIN ordem_servico os ON os.id_atendimento = a.id_atendimento
+       WHERE a.id_funcionario = ?
+     ) servicos
+     ORDER BY
+       (status IN ('Agendado', 'Confirmado', 'Em atendimento')) DESC,
+       dataHora DESC
+     LIMIT 30`,
+    [idFuncionario, idFuncionario]
+  );
+
+  return rows;
+}
+
+async function atualizar({
+  idFuncionario,
+  nome,
+  cpf,
+  email,
+  telefone,
+  dataAdmissao,
+  idCargo,
+  idPerfil,
+  ativo
+}) {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [funcionarios] = await connection.execute(
+      `SELECT id_usuario AS idUsuario
+       FROM funcionario
+       WHERE id_funcionario = ?
+       FOR UPDATE`,
+      [idFuncionario]
+    );
+
+    if (funcionarios.length === 0) {
+      await connection.rollback();
+      return false;
+    }
+
+    await connection.execute(
+      `UPDATE funcionario
+       SET nome = ?, cpf = ?, email = ?, telefone = ?,
+           data_admissao = ?, id_cargo = ?, ativo = ?
+       WHERE id_funcionario = ?`,
+      [nome, cpf, email, telefone, dataAdmissao, idCargo, ativo, idFuncionario]
+    );
+
+    const { idUsuario } = funcionarios[0];
+    if (idUsuario !== null) {
+      await connection.execute(
+        `UPDATE usuario
+         SET email = ?, id_perfil = ?, ativo = ?
+         WHERE id_usuario = ?`,
+        [email, idPerfil, ativo, idUsuario]
+      );
+    }
+
+    await connection.commit();
+    return true;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 async function criar({ nome, cpf, email, telefone, dataAdmissao, idCargo, idUsuario }) {
   const [resultado] = await pool.execute(
     `INSERT INTO funcionario (id_usuario, id_cargo, nome, cpf, email, telefone, data_admissao, ativo)
@@ -170,7 +292,10 @@ module.exports = {
   updateCargoEPerfil,
   findByUsuarioId,
   findAtivoById,
+  findById,
   listarAtivos,
+  listarServicosAtribuidos,
+  atualizar,
   criar,
   posicaoNaLista
 };

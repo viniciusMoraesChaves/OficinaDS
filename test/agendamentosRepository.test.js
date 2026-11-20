@@ -132,3 +132,24 @@ test('findByCliente filtra pelo cliente e deixa concluídos e cancelados por úl
   assert.match(chamada.sql, /WHERE ag\.id_cliente = \?/);
   assert.deepEqual(chamada.params, [7, 'Concluído', 'Cancelado']);
 });
+
+test('cancelar bloqueia a linha e grava status, motivo, data e usuário em transação', async () => {
+  reiniciar({ id: 10, status: 'Agendado', dataHora: '2026-10-22T14:00:00' });
+
+  const resultado = await repository.cancelar(
+    10,
+    3,
+    'Cliente não poderá comparecer.',
+    (atual) => assert.equal(atual.status, 'Agendado')
+  );
+
+  assert.deepEqual(resultado, { id: 10 });
+  assert.deepEqual(registro.eventos, ['begin', 'commit', 'release']);
+
+  const update = registro.conexaoCalls.find(
+    (chamada) => /motivo_cancelamento/.test(chamada.sql)
+  );
+  assert.ok(update);
+  assert.match(update.sql, /cancelado_em = CURRENT_TIMESTAMP/);
+  assert.deepEqual(update.params, ['Cancelado', 'Cliente não poderá comparecer.', 3, 10]);
+});

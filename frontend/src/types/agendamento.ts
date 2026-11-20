@@ -10,6 +10,11 @@ export type PermissaoReagendamento = {
   motivo: string | null;
 };
 
+export type PermissaoCancelamento = {
+  permitido: boolean;
+  motivo: string | null;
+};
+
 export type Agendamento = {
   id: number;
   servico: string;
@@ -18,6 +23,9 @@ export type Agendamento = {
   status: StatusAgendamento;
   qtdReagendamentos: number;
   reagendadoEm: string | null;
+  motivoCancelamento: string | null;
+  canceladoEm: string | null;
+  canceladoPor: string | null;
   veiculoId: number;
   funcionarioId: number;
   cliente: string;
@@ -26,6 +34,7 @@ export type Agendamento = {
   modelo: string;
   funcionario: string;
   reagendamento: PermissaoReagendamento;
+  cancelamento: PermissaoCancelamento;
 };
 
 export type VeiculoOpcao = {
@@ -50,6 +59,11 @@ export type RegrasAgendamento = {
   capacidadeSimultanea: number;
   statusReagendaveis: string[];
   expediente: string;
+  cancelamento: {
+    statusCancelaveis: string[];
+    motivoMinimo: number;
+    motivoMaximo: number;
+  };
 };
 
 export type OpcoesAgendamento = {
@@ -79,6 +93,9 @@ export type AgendamentoCliente = {
   status: StatusAgendamento;
   qtdReagendamentos: number;
   reagendadoEm: string | null;
+  motivoCancelamento: string | null;
+  canceladoEm: string | null;
+  canceladoPor: string | null;
   placa: string;
   marca: string;
   modelo: string;

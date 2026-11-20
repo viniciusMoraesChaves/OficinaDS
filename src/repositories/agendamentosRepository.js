@@ -14,6 +14,10 @@ const SELECT_AGENDAMENTO = `
     ag.status,
     ag.qtd_reagendamentos AS qtdReagendamentos,
     DATE_FORMAT(ag.reagendado_em, '${FORMATO_DATA_HORA}') AS reagendadoEm,
+    ag.motivo_cancelamento AS motivoCancelamento,
+    DATE_FORMAT(ag.cancelado_em, '${FORMATO_DATA_HORA}') AS canceladoEm,
+    ag.cancelado_por_usuario AS canceladoPorUsuarioId,
+    uc.email AS canceladoPor,
     ag.id_veiculo AS veiculoId,
     ag.id_funcionario AS funcionarioId,
     c.nome AS cliente,
@@ -24,7 +28,8 @@ const SELECT_AGENDAMENTO = `
   FROM agendamento ag
   INNER JOIN cliente c ON c.id_cliente = ag.id_cliente
   INNER JOIN veiculo v ON v.id_veiculo = ag.id_veiculo
-  INNER JOIN funcionario f ON f.id_funcionario = ag.id_funcionario`;
+  INNER JOIN funcionario f ON f.id_funcionario = ag.id_funcionario
+  LEFT JOIN usuario uc ON uc.id_usuario = ag.cancelado_por_usuario`;
 
 const PLACEHOLDERS_STATUS_ATIVOS = STATUS_QUE_OCUPAM_HORARIO.map(() => '?').join(', ');
 
@@ -234,6 +239,42 @@ async function reagendarSeLivre(id, novoInicioSql, validar) {
   return encontrado ? findById(id) : null;
 }
 
+// Cancela com bloqueio da linha para garantir que status, motivo e auditoria
+// sejam gravados juntos e que duas requisições não cancelem o mesmo registro.
+async function cancelar(id, idUsuario, motivo, validar) {
+  const encontrado = await comTransacao(async (conexao) => {
+    const [linhas] = await conexao.execute(
+      `SELECT
+         id_agendamento AS id,
+         status,
+         DATE_FORMAT(data_hora, '${FORMATO_DATA_HORA}') AS dataHora
+       FROM agendamento
+       WHERE id_agendamento = ?
+       FOR UPDATE`,
+      [id]
+    );
+
+    const atual = linhas[0];
+    if (!atual) return false;
+
+    validar(atual);
+
+    await conexao.execute(
+      `UPDATE agendamento
+       SET status = ?,
+           motivo_cancelamento = ?,
+           cancelado_em = CURRENT_TIMESTAMP,
+           cancelado_por_usuario = ?
+       WHERE id_agendamento = ?`,
+      [STATUS.CANCELADO, motivo, idUsuario, id]
+    );
+
+    return true;
+  });
+
+  return encontrado ? findById(id) : null;
+}
+
 module.exports = {
   findAll,
   findByCliente,
@@ -243,5 +284,6 @@ module.exports = {
   findEmployeeById,
   findOccupiedByDay,
   createSeLivre,
-  reagendarSeLivre
+  reagendarSeLivre,
+  cancelar
 };
