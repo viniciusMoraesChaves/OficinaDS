@@ -18,5 +18,6 @@ router.get('/horarios', equipe, agendamentosController.horariosNovo);
 router.get('/:id/horarios', equipe, agendamentosController.horariosReagendamento);
 router.post('/', equipe, agendamentosController.create);
 router.patch('/:id/reagendar', equipe, agendamentosController.reagendar);
+router.patch('/:id/cancelar', equipe, agendamentosController.cancelar);
 
 module.exports = router;

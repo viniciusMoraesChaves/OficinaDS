@@ -10,6 +10,7 @@ const perfisRepository = require('../repositories/perfisRepository');
 const contasRepository = require('../repositories/contasRepository');
 const { PERFIS } = require('../utils/perfis');
 const { exigirTexto, exigirCpf, exigirEmail, exigirSenha } = require('../utils/validacoes');
+const { parseId } = require('../utils/queryParams');
 
 const SALT_ROUNDS = 10;
 
@@ -35,6 +36,99 @@ async function search(req, res) {
 async function listarOpcoes(req, res) {
   const funcionarios = await funcionariosRepository.listarAtivos();
   res.json({ dados: funcionarios });
+}
+
+async function obter(req, res) {
+  const id = parseId(req.params.id);
+  const funcionario = await funcionariosRepository.findById(id);
+
+  if (!funcionario) {
+    return res.status(404).json({ mensagem: 'Funcionário não encontrado.' });
+  }
+
+  const servicos = await funcionariosRepository.listarServicosAtribuidos(id);
+  return res.json({ dados: { ...funcionario, servicos } });
+}
+
+function validarDataAdmissao(valor) {
+  const data = String(valor || '').trim();
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data);
+
+  if (!partes) {
+    const erro = new Error('Informe uma data de admissão válida.');
+    erro.statusCode = 400;
+    throw erro;
+  }
+
+  const conferida = new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3]));
+  if (
+    conferida.getFullYear() !== Number(partes[1]) ||
+    conferida.getMonth() !== Number(partes[2]) - 1 ||
+    conferida.getDate() !== Number(partes[3])
+  ) {
+    const erro = new Error('Informe uma data de admissão válida.');
+    erro.statusCode = 400;
+    throw erro;
+  }
+
+  return data;
+}
+
+async function atualizar(req, res) {
+  const id = parseId(req.params.id);
+  const nome = exigirTexto(req.body.nome, 'Informe o nome do funcionário.');
+  const cpf = exigirCpf(req.body.cpf);
+  const email = exigirEmail(req.body.email);
+  const telefone = String(req.body.telefone || '').trim() || null;
+  const dataAdmissao = validarDataAdmissao(req.body.dataAdmissao);
+  const idCargo = Number(req.body.idCargo);
+  const ativo = req.body.ativo;
+
+  if (telefone && telefone.length > 20) {
+    return res.status(400).json({ mensagem: 'O telefone deve ter no máximo 20 caracteres.' });
+  }
+
+  if (!Number.isInteger(idCargo) || idCargo <= 0) {
+    return res.status(400).json({ mensagem: 'Selecione um cargo.' });
+  }
+
+  if (typeof ativo !== 'boolean') {
+    return res.status(400).json({ mensagem: 'Informe a situação do funcionário.' });
+  }
+
+  const cargo = await cargosRepository.findById(idCargo);
+  if (!cargo) {
+    return res.status(404).json({ mensagem: 'Cargo não encontrado.' });
+  }
+
+  const nomePerfil = cargo.nome === 'Gerente' ? PERFIS.ADMINISTRADOR : PERFIS.FUNCIONARIO;
+  const perfil = await perfisRepository.buscarPorNome(nomePerfil);
+
+  if (!perfil) {
+    return res.status(500).json({ mensagem: 'Perfil correspondente ao cargo não encontrado.' });
+  }
+
+  const atualizado = await funcionariosRepository.atualizar({
+    idFuncionario: id,
+    nome,
+    cpf,
+    email,
+    telefone,
+    dataAdmissao,
+    idCargo,
+    idPerfil: perfil.id,
+    ativo
+  });
+
+  if (!atualizado) {
+    return res.status(404).json({ mensagem: 'Funcionário não encontrado.' });
+  }
+
+  return res.json({
+    mensagem: ativo
+      ? 'Funcionário atualizado e mantido ativo.'
+      : 'Funcionário atualizado e inativado.'
+  });
 }
 
 async function updateCargo(req, res) {
@@ -143,4 +237,4 @@ async function criar(req, res) {
   });
 }
 
-module.exports = { search, listarOpcoes, updateCargo, criar };
+module.exports = { search, listarOpcoes, obter, atualizar, updateCargo, criar };

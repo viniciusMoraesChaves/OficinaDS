@@ -1,6 +1,7 @@
 const agendamentosRepository = require('../repositories/agendamentosRepository');
 const clientesRepository = require('../repositories/clientesRepository');
 const regras = require('../utils/regrasAgendamento');
+const cancelamento = require('../utils/cancelamentoAgendamento');
 const { parseId, ValidationError } = require('../utils/queryParams');
 
 // Relógio isolado em um objeto para os testes poderem fixar "agora".
@@ -32,8 +33,12 @@ function parseNovoAgendamento(body = {}) {
   return { veiculoId, funcionarioId, servico, ...parseDataHora(body) };
 }
 
-function comRegraDeReagendamento(agendamento, agora) {
-  return { ...agendamento, reagendamento: regras.avaliarReagendamento(agendamento, agora) };
+function comRegrasDeAlteracao(agendamento, agora) {
+  return {
+    ...agendamento,
+    reagendamento: regras.avaliarReagendamento(agendamento, agora),
+    cancelamento: cancelamento.avaliarCancelamento(agendamento, agora)
+  };
 }
 
 function naoEncontrado(res) {
@@ -47,7 +52,7 @@ async function list(req, res) {
   const agora = relogio.agora();
   const agendamentos = await agendamentosRepository.findAll();
 
-  res.json({ dados: agendamentos.map((item) => comRegraDeReagendamento(item, agora)) });
+  res.json({ dados: agendamentos.map((item) => comRegrasDeAlteracao(item, agora)) });
 }
 
 // Visão do Cliente: somente leitura e só os agendamentos dele. Mostra apenas o
@@ -61,6 +66,9 @@ function paraCliente(agendamento) {
     status: agendamento.status,
     qtdReagendamentos: agendamento.qtdReagendamentos,
     reagendadoEm: agendamento.reagendadoEm,
+    motivoCancelamento: agendamento.motivoCancelamento,
+    canceladoEm: agendamento.canceladoEm,
+    canceladoPor: agendamento.canceladoPor,
     placa: agendamento.placa,
     marca: agendamento.marca,
     modelo: agendamento.modelo,
@@ -81,7 +89,15 @@ async function listMine(req, res) {
 
 async function options(req, res) {
   const dados = await agendamentosRepository.findOptions();
-  res.json({ dados: { ...dados, regras: regras.regrasPublicas() } });
+  res.json({
+    dados: {
+      ...dados,
+      regras: {
+        ...regras.regrasPublicas(),
+        cancelamento: cancelamento.regrasPublicas()
+      }
+    }
+  });
 }
 
 // Horários livres para um NOVO agendamento (precisa saber profissional e veículo).
@@ -173,7 +189,7 @@ async function create(req, res) {
 
   res.status(201).json({
     mensagem: 'Agendamento criado com sucesso.',
-    dados: comRegraDeReagendamento(criado, agora)
+    dados: comRegrasDeAlteracao(criado, agora)
   });
 }
 
@@ -224,7 +240,32 @@ async function reagendar(req, res) {
 
   return res.json({
     mensagem: 'Agendamento reagendado com sucesso.',
-    dados: comRegraDeReagendamento(atualizado, agora)
+    dados: comRegrasDeAlteracao(atualizado, agora)
+  });
+}
+
+async function cancelar(req, res) {
+  const id = parseId(req.params.id);
+  const motivo = cancelamento.parseMotivo(req.body?.motivo);
+  const agora = relogio.agora();
+  const atual = await agendamentosRepository.findById(id);
+
+  if (!atual) return naoEncontrado(res);
+
+  cancelamento.exigirPodeCancelar(atual, agora);
+
+  const atualizado = await agendamentosRepository.cancelar(
+    id,
+    req.usuarioLogado.id,
+    motivo,
+    (bloqueado) => cancelamento.exigirPodeCancelar(bloqueado, agora)
+  );
+
+  if (!atualizado) return naoEncontrado(res);
+
+  return res.json({
+    mensagem: 'Agendamento cancelado com sucesso.',
+    dados: comRegrasDeAlteracao(atualizado, agora)
   });
 }
 
@@ -236,6 +277,7 @@ module.exports = {
   horariosReagendamento,
   create,
   reagendar,
+  cancelar,
   parseNovoAgendamento,
   parseDataHora,
   relogio

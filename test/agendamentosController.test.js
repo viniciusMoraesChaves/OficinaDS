@@ -10,6 +10,7 @@ const estado = {
   clienteDoUsuario: null,
   agendamentosDoCliente: [],
   consultasPorCliente: []
+  , cancelamentos: []
 };
 
 require.cache[repositoryPath] = {
@@ -42,6 +43,16 @@ require.cache[repositoryPath] = {
       validar(estado.ocupados);
       estado.gravacoes.push(dados);
       return { id: 50, ...dados, status: 'Agendado', dataHora: dados.inicioSql.replace(' ', 'T') };
+    },
+    async cancelar(id, idUsuario, motivo, validar) {
+      validar(estado.agendamento);
+      estado.cancelamentos.push({ id, idUsuario, motivo });
+      return {
+        ...estado.agendamento,
+        status: 'Cancelado',
+        motivoCancelamento: motivo,
+        canceladoPorUsuarioId: idUsuario
+      };
     }
   }
 };
@@ -88,7 +99,53 @@ function preparar({ agendamento, ocupados = [] } = {}) {
   };
   estado.ocupados = ocupados;
   estado.gravacoes = [];
+  estado.cancelamentos = [];
 }
+
+test('cancelar registra motivo e usuário responsável', async () => {
+  preparar();
+  const res = criarRespostaFake();
+
+  await controller.cancelar(
+    {
+      params: { id: '10' },
+      body: { motivo: 'Cliente não poderá comparecer.' },
+      usuarioLogado: { id: 3 }
+    },
+    res
+  );
+
+  assert.deepEqual(estado.cancelamentos, [
+    { id: 10, idUsuario: 3, motivo: 'Cliente não poderá comparecer.' }
+  ]);
+  assert.equal(res.corpo.dados.status, 'Cancelado');
+  assert.equal(res.corpo.dados.cancelamento.permitido, false);
+});
+
+test('cancelar recusa agendamento concluído', async () => {
+  preparar({
+    agendamento: {
+      id: 10,
+      status: 'Concluído',
+      dataHora: '2026-10-20T09:00:00',
+      funcionarioId: 2,
+      veiculoId: 1
+    }
+  });
+
+  await assert.rejects(
+    controller.cancelar(
+      {
+        params: { id: '10' },
+        body: { motivo: 'Cancelamento solicitado pelo cliente.' },
+        usuarioLogado: { id: 3 }
+      },
+      criarRespostaFake()
+    ),
+    (erro) => erro.codigo === 'CANCELAMENTO_NAO_PERMITIDO'
+  );
+  assert.equal(estado.cancelamentos.length, 0);
+});
 
 /* ---------- Validação das entradas ---------- */
 

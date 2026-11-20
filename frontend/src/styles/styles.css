@@ -1187,6 +1187,145 @@ a {
   color: var(--text);
 }
 
+.cancellation-summary {
+  max-width: 220px;
+  white-space: normal;
+}
+
+.field__hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.dialog--employee {
+  width: min(780px, calc(100% - 32px));
+}
+
+.employee-admin {
+  display: grid;
+  gap: 22px;
+}
+
+.employee-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.employee-form-grid__wide {
+  grid-column: 1 / -1;
+}
+
+.employee-active-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.employee-active-toggle input {
+  margin-top: 3px;
+}
+
+.employee-active-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.employee-active-toggle small,
+.employee-services__header p,
+.employee-services__empty,
+.employee-service small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.employee-services {
+  display: grid;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.employee-services__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.employee-services__header h3,
+.employee-services__header p,
+.employee-services__empty {
+  margin: 0;
+}
+
+.employee-services__header > span {
+  min-width: 30px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #694405;
+  background: #fff0cf;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.employee-services__list {
+  display: grid;
+  gap: 8px;
+  max-height: 245px;
+  overflow-y: auto;
+}
+
+.employee-service {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.employee-service > div {
+  display: grid;
+  gap: 3px;
+}
+
+.employee-service__meta {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.employee-service__meta span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .employee-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-form-grid__wide {
+    grid-column: auto;
+  }
+
+  .employee-service {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .employee-service__meta {
+    text-align: left;
+  }
+}
+
 .field__label {
   color: #4f514c;
   font-size: 12px;

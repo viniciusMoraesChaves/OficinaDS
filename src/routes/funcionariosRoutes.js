@@ -23,6 +23,18 @@ router.post(
   funcionariosController.criar
 );
 
+router.get(
+  '/:id',
+  protegerRota(PERFIS.ADMINISTRADOR),
+  funcionariosController.obter
+);
+
+router.patch(
+  '/:id',
+  protegerRota(PERFIS.ADMINISTRADOR),
+  funcionariosController.atualizar
+);
+
 router.patch(
   '/:id/cargo',
   protegerRota(PERFIS.ADMINISTRADOR),

@@ -37,6 +37,11 @@ const OPCOES_VAZIAS: OpcoesAgendamento = {
     capacidadeSimultanea: 3,
     statusReagendaveis: ['Agendado', 'Confirmado'],
     expediente: '',
+    cancelamento: {
+      statusCancelaveis: ['Agendado', 'Confirmado'],
+      motivoMinimo: 5,
+      motivoMaximo: 500,
+    },
   },
 };
 
@@ -131,6 +136,13 @@ export default function Agendamentos() {
   const [reTentativa, setReTentativa] = useState(0);
   const reDialogRef = useRef<HTMLDialogElement>(null);
 
+  // Cancelamento
+  const [cancelando, setCancelando] = useState<Agendamento | null>(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
+  const [cancelamentoErro, setCancelamentoErro] = useState('');
+  const [cancelandoSalvando, setCancelandoSalvando] = useState(false);
+  const cancelamentoDialogRef = useRef<HTMLDialogElement>(null);
+
   const [hoje] = useState(() => new Date());
   const minData = toISODate(hoje);
   const maxData = toISODate(somarDias(hoje, opcoes.regras.janelaMaximaDias));
@@ -181,6 +193,17 @@ export default function Agendamentos() {
       dialog.close();
     }
   }, [reagendandoAberto]);
+
+  useEffect(() => {
+    const dialog = cancelamentoDialogRef.current;
+    if (!dialog) return;
+
+    if (cancelando && !dialog.open) {
+      dialog.showModal();
+    } else if (!cancelando && dialog.open) {
+      dialog.close();
+    }
+  }, [cancelando]);
 
   const urlHorariosNovo =
     novoAberto && novoForm.data && novoForm.funcionarioId && novoForm.veiculoId
@@ -308,6 +331,51 @@ export default function Agendamentos() {
     }
   }
 
+  function abrirCancelamento(agendamento: Agendamento) {
+    setCancelando(agendamento);
+    setMotivoCancelamento('');
+    setCancelamentoErro('');
+    setSuccess('');
+  }
+
+  function fecharCancelamento() {
+    if (!cancelandoSalvando) setCancelando(null);
+  }
+
+  async function salvarCancelamento(event: FormEvent) {
+    event.preventDefault();
+    if (!cancelando) return;
+
+    const motivo = motivoCancelamento.trim();
+    if (motivo.length < regras.cancelamento.motivoMinimo) {
+      setCancelamentoErro(
+        `Informe um motivo com pelo menos ${regras.cancelamento.motivoMinimo} caracteres.`
+      );
+      return;
+    }
+
+    setCancelandoSalvando(true);
+    setCancelamentoErro('');
+
+    try {
+      await apiFetch(`/api/agendamentos/${cancelando.id}/cancelar`, {
+        method: 'PATCH',
+        body: JSON.stringify({ motivo }),
+      });
+
+      const idCancelado = cancelando.id;
+      setCancelando(null);
+      setSuccess(`Agendamento AG-${idCancelado} cancelado com sucesso.`);
+      await carregarDados();
+    } catch (err) {
+      setCancelamentoErro(
+        err instanceof Error ? err.message : 'Não foi possível cancelar o agendamento.'
+      );
+    } finally {
+      setCancelandoSalvando(false);
+    }
+  }
+
   const { regras } = opcoes;
 
   return (
@@ -416,6 +484,11 @@ export default function Agendamentos() {
                   <td>{agendamento.funcionario}</td>
                   <td>
                     <AgendamentoStatusBadge status={agendamento.status} />
+                    {agendamento.motivoCancelamento && (
+                      <small className="table-secondary cancellation-summary">
+                        Motivo: {agendamento.motivoCancelamento}
+                      </small>
+                    )}
                   </td>
                   <td className="align-right">
                     <div className="table-actions">
@@ -430,6 +503,18 @@ export default function Agendamentos() {
                         }
                       >
                         Reagendar
+                      </button>
+                      <button
+                        className="button button--danger button--small"
+                        type="button"
+                        onClick={() => abrirCancelamento(agendamento)}
+                        disabled={!agendamento.cancelamento.permitido}
+                        title={
+                          agendamento.cancelamento.motivo ??
+                          'Cancelar este agendamento'
+                        }
+                      >
+                        Cancelar
                       </button>
                     </div>
                   </td>
@@ -553,6 +638,83 @@ export default function Agendamentos() {
             </button>
           </div>
         </form>
+      </dialog>
+
+      {/* ---------- Cancelar ---------- */}
+      <dialog
+        ref={cancelamentoDialogRef}
+        className="dialog"
+        aria-labelledby="cancelar-agendamento-title"
+        onClose={() => setCancelando(null)}
+        onClick={(event) => {
+          if (event.target === cancelamentoDialogRef.current) fecharCancelamento();
+        }}
+      >
+        <header className="dialog__header">
+          <h2 id="cancelar-agendamento-title">Cancelar agendamento</h2>
+          <button
+            className="dialog__close"
+            type="button"
+            aria-label="Fechar"
+            onClick={fecharCancelamento}
+            disabled={cancelandoSalvando}
+          >
+            ✕
+          </button>
+        </header>
+
+        {cancelando && (
+          <form className="dialog__body schedule-form" onSubmit={salvarCancelamento}>
+            <div className="schedule-current">
+              <span className="order-code">AG-{cancelando.id}</span>
+              <strong className="table-primary">{cancelando.servico}</strong>
+              <small className="table-secondary">
+                {cancelando.marca} {cancelando.modelo} • {cancelando.placa} • {cancelando.cliente}
+              </small>
+              <p className="schedule-current__when">
+                Horário: <strong>{formatDateTime(cancelando.dataHora)}</strong>
+              </p>
+            </div>
+
+            <div className="field">
+              <label htmlFor="motivo-cancelamento">Motivo do cancelamento</label>
+              <textarea
+                id="motivo-cancelamento"
+                rows={4}
+                minLength={regras.cancelamento.motivoMinimo}
+                maxLength={regras.cancelamento.motivoMaximo}
+                placeholder="Ex.: Cliente informou que não poderá comparecer."
+                value={motivoCancelamento}
+                onChange={(event) => setMotivoCancelamento(event.target.value)}
+                disabled={cancelandoSalvando}
+                required
+              />
+              <small className="field__hint">
+                {motivoCancelamento.length}/{regras.cancelamento.motivoMaximo} caracteres
+              </small>
+            </div>
+
+            {cancelamentoErro && <Feedback type="error" message={cancelamentoErro} />}
+
+            <div className="dialog__actions">
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={fecharCancelamento}
+                disabled={cancelandoSalvando}
+              >
+                Voltar
+              </button>
+              <button
+                className="button button--danger"
+                type="submit"
+                disabled={cancelandoSalvando}
+              >
+                {cancelandoSalvando ? 'Cancelando...' : 'Confirmar cancelamento'}
+              </button>
+            </div>
+          </form>
+        )}
       </dialog>
 
       {/* ---------- Reagendar ---------- */}

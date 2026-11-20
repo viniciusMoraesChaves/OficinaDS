@@ -213,7 +213,8 @@ OficinaDS/
 │   ├── 20_baixa_pecas_danificadas.sql
 │   ├── 21_acompanhamento_servicos.sql
 │   ├── 22_urgencia_atendimento.sql
-│   └── 23_pecas_utilizadas.sql
+│   ├── 23_pecas_utilizadas.sql
+│   └── 24_cancelamento_agendamento.sql
 ├── docs/
 │   ├── DER_DO_MODULO.md
 │   ├── INTEGRACAO_EQUIPE.md
@@ -403,6 +404,7 @@ Execute os arquivos da pasta `database` como `root`, **nesta ordem**. A ordem im
 | 20 | `21_acompanhamento_servicos.sql` | previsão e atualização do progresso dos serviços |
 | 21 | `22_urgencia_atendimento.sql` | urgência baixa, média ou alta nos atendimentos |
 | 22 | `23_pecas_utilizadas.sql` | liga peças usadas ao estoque e à ordem de serviço |
+| 23 | `24_cancelamento_agendamento.sql` | motivo, data e responsável pelo cancelamento de agendamentos |
 
 O arquivo `04_consultas_para_estudar.sql` é opcional e contém exemplos de consultas.
 
@@ -431,6 +433,7 @@ mysql -u root -p --default-character-set=utf8mb4 < database/20_baixa_pecas_danif
 mysql -u root -p --default-character-set=utf8mb4 < database/21_acompanhamento_servicos.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/22_urgencia_atendimento.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/23_pecas_utilizadas.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/24_cancelamento_agendamento.sql
 ```
 
 > No Windows, o `--default-character-set=utf8mb4` evita erros de codificação e acentos quebrados. Pare no primeiro erro e corrija antes de continuar. Se precisar recomeçar do zero, apague o banco com `DROP DATABASE oficina_ds;` e refaça a sequência. Repetir o `15_agendamentos.sql` recalcula as datas dos agendamentos de exemplo e apaga os reagendamentos que você tiver testado.
@@ -549,6 +552,8 @@ Todas as rotas, exceto `saude`, `cadastro` e `login`, exigem o cabeçalho `Autho
 | `GET` | `/api/clientes/:id` | Equipe | Consulta um cliente e seus veículos |
 | `GET` | `/api/funcionarios` | Admin | Pesquisa e filtra funcionários |
 | `POST` | `/api/funcionarios` | Admin | Cadastra um funcionário |
+| `GET` | `/api/funcionarios/:id` | Admin | Consulta dados e serviços atribuídos ao funcionário |
+| `PATCH` | `/api/funcionarios/:id` | Admin | Edita dados, cargo e situação do funcionário |
 | `PATCH` | `/api/funcionarios/:id/cargo` | Admin | Altera o cargo de um funcionário |
 | `GET` | `/api/cargos` | Admin | Lista os cargos |
 | `POST` | `/api/cargos` | Admin | Cria um cargo |
@@ -592,6 +597,7 @@ Todas as rotas, exceto `saude`, `cadastro` e `login`, exigem o cabeçalho `Autho
 | `GET` | `/api/agendamentos/:id/horarios` | Equipe | Horários livres para reagendar |
 | `POST` | `/api/agendamentos` | Equipe | Cria um agendamento |
 | `PATCH` | `/api/agendamentos/:id/reagendar` | Equipe | Reagenda um serviço |
+| `PATCH` | `/api/agendamentos/:id/cancelar` | Equipe | Cancela e registra motivo, data e usuário responsável |
 
 O Administrador tem acesso a todas as rotas, inclusive às de Funcionario.
 
@@ -625,6 +631,17 @@ Content-Type: application/json
 
 Erros de regra: `422` (status não permitido, antecedência insuficiente, fora do expediente) e `409` (conflito de horário). Detalhes em [`docs/REAGENDAMENTO.md`](docs/REAGENDAMENTO.md).
 
+### Cancelar um agendamento
+
+```http
+PATCH /api/agendamentos/1/cancelar
+Content-Type: application/json
+
+{ "motivo": "Cliente informou que não poderá comparecer." }
+```
+
+Somente agendamentos futuros com status `Agendado` ou `Confirmado` podem ser cancelados. A operação registra o motivo, a data/hora e o usuário da equipe responsável.
+
 ## Testes
 
 Execute os testes automatizados do backend:
@@ -651,7 +668,8 @@ O projeto possui testes para:
 - histórico do veículo;
 - estoque de peças e painel inicial;
 - pedidos de peças (itens e quantidades, envio, aprovação, rejeição e permissões);
-- regras de agendamento e reagendamento (status, antecedência, expediente e conflitos) e a consulta do cliente.
+- regras de agendamento, reagendamento e cancelamento, incluindo motivo e auditoria;
+- administração completa de funcionários e consulta dos serviços atribuídos.
 
 ## Integração da equipe
 
@@ -672,7 +690,7 @@ Mais detalhes estão em [`docs/INTEGRACAO_EQUIPE.md`](docs/INTEGRACAO_EQUIPE.md)
 
 - [x] Consultar clientes e ver os veículos de cada um;
 - [x] pesquisar e filtrar funcionários;
-- [x] cadastro de funcionários e alteração de cargo;
+- [x] cadastro, consulta, edição e inativação de funcionários, com serviços atribuídos;
 - [x] cadastro e login de usuários, com cadastro de cliente e veículo;
 - [x] controle de perfis e permissões;
 - [x] atendimentos e orçamentos, com aceite ou recusa do cliente;
@@ -681,7 +699,7 @@ Mais detalhes estão em [`docs/INTEGRACAO_EQUIPE.md`](docs/INTEGRACAO_EQUIPE.md)
 - [x] agendar e reagendar serviços;
 - [x] cliente consulta os próprios orçamentos e agendamentos;
 - [ ] cliente solicitar ou reagendar o próprio agendamento pelo portal;
-- [ ] cancelamento de agendamentos e controle de urgência;
+- [x] cancelamento de agendamentos e controle de urgência;
 - [ ] cadastro e edição de veículos pelas telas da oficina;
 - [ ] histórico de status das ordens de serviço;
 - [x] consulta do estoque de peças;
