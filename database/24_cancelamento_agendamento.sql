@@ -79,4 +79,17 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 GRANT SELECT, UPDATE ON oficina_ds.agendamento TO 'oficina_app'@'localhost';
+
+-- DM-36: consulta dos serviços atribuídos e edição/inativação da equipe.
+GRANT SELECT ON oficina_ds.funcionario TO 'oficina_app'@'localhost';
+GRANT UPDATE (nome, cpf, email, telefone, data_admissao, id_cargo, ativo)
+  ON oficina_ds.funcionario TO 'oficina_app'@'localhost';
+GRANT SELECT ON oficina_ds.usuario TO 'oficina_app'@'localhost';
+GRANT UPDATE (email, id_perfil, ativo)
+  ON oficina_ds.usuario TO 'oficina_app'@'localhost';
+GRANT SELECT ON oficina_ds.cargo TO 'oficina_app'@'localhost';
+GRANT SELECT ON oficina_ds.veiculo TO 'oficina_app'@'localhost';
+GRANT SELECT ON oficina_ds.atendimento TO 'oficina_app'@'localhost';
+GRANT SELECT ON oficina_ds.ordem_servico TO 'oficina_app'@'localhost';
+
 FLUSH PRIVILEGES;

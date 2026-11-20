@@ -43,7 +43,7 @@ function errorHandler(error, req, res, next) {
   if (error.code === 'ER_TABLEACCESS_DENIED_ERROR' || error.code === 'ER_COLUMNACCESS_DENIED_ERROR') {
     return res.status(503).json({
       erro: 'PERMISSAO_BANCO_NEGADA',
-      mensagem: 'O usuário do banco não tem permissão para esta operação. Execute os scripts de grants da pasta database (até o 12).'
+      mensagem: 'O usuário do banco não tem permissão para esta operação. Execute todos os scripts da pasta database, incluindo a migração mais recente.'
     });
   }
 
