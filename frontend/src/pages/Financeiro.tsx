@@ -14,6 +14,7 @@ import type {
   ResumoFinanceiro,
   TipoMovimentacao
 } from '../types/financeiro';
+import GraficoFinanceiro from '../components/GraficoFinanceiro';
 import '../styles/financeiro.css';
 
 const LIMITE = 8;
@@ -444,6 +445,8 @@ export default function Financeiro() {
       </form>
 
       <Feedback type="error" message={erroFiltro} />
+
+      <GraficoFinanceiro filtros={filtros} versao={recarregar} />
 
       <section className="panel" aria-labelledby="movimentacoes-title">
         <header className="panel__header">

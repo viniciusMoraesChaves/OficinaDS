@@ -145,4 +145,30 @@ async function criar({ tipo, categoria, descricao, valor, data, formaPagamento, 
   return resultado.insertId;
 }
 
-module.exports = { listar, resumo, criar, montarFiltro, temCobrancas };
+// Totais de entradas e saídas agrupados por dia ou por mês, para o gráfico.
+// Usa as mesmas fontes e os mesmos filtros da listagem.
+async function serie(filtros, granularidade) {
+  const fonte = fonteDeMovimentacoes(await temCobrancas());
+  const { where, parametros } = montarFiltro(filtros);
+  const formato = granularidade === 'dia' ? '%Y-%m-%d' : '%Y-%m';
+
+  const [rows] = await pool.execute(
+    `SELECT
+       DATE_FORMAT(mov.data, '${formato}') AS periodo,
+       COALESCE(SUM(CASE WHEN mov.tipo = 'entrada' THEN mov.valor END), 0) AS entradas,
+       COALESCE(SUM(CASE WHEN mov.tipo = 'saida' THEN mov.valor END), 0) AS saidas
+     FROM (${fonte}) mov
+     ${where}
+     GROUP BY periodo
+     ORDER BY periodo ASC`,
+    parametros
+  );
+
+  return rows.map((row) => ({
+    periodo: row.periodo,
+    entradas: Number(row.entradas),
+    saidas: Number(row.saidas)
+  }));
+}
+
+module.exports = { listar, resumo, serie, criar, montarFiltro, temCobrancas };

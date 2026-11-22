@@ -12,5 +12,6 @@ const administrador = protegerRota(PERFIS.ADMINISTRADOR);
 router.get('/', administrador, movimentacoesController.listar);
 router.post('/', administrador, movimentacoesController.criar);
 router.get('/categorias', administrador, movimentacoesController.categorias);
+router.get('/grafico', administrador, movimentacoesController.grafico);
 
 module.exports = router;
