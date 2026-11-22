@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PERFIS, type Perfil } from '../types/perfil';
+import { NotificacoesMenu } from './NotificacoesMenu';
 
 type LayoutProps = {
   title: string;
@@ -145,6 +146,9 @@ export function Layout({ title, subtitle, documentTitle, children }: LayoutProps
           <div className="topbar__title">
             <h1>{title}</h1>
             <p>{subtitle}</p>
+          </div>
+          <div className="topbar__actions">
+            <NotificacoesMenu />
           </div>
         </header>
 

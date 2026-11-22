@@ -685,7 +685,7 @@ export default function Financeiro() {
           </strong>
           <small>
             {resumoInad
-              ? `${clientesInad} cliente${clientes === 1 ? '' : 's'} com valores vencidos`
+              ? `${clientesInad} cliente${clientesInad === 1 ? '' : 's'} com valores vencidos`
               : 'Consultar valores em aberto'}
           </small>
         </Link>

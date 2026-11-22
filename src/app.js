@@ -22,6 +22,7 @@ const pedidosPecasRoutes = require('./routes/pedidosPecasRoutes');
 const movimentacoesRoutes = require('./routes/movimentacoesRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 const agendamentosRoutes = require('./routes/agendamentosRoutes');
+const notificacoesRoutes = require('./routes/notificacoesRoutes');
 
 const app = express();
 const distDirectory = path.resolve(__dirname, '../frontend/dist');
@@ -53,6 +54,7 @@ app.use('/api/painel', painelRoutes);
 app.use('/api/pecas', pecasRoutes);
 app.use('/api/pedidos-pecas', pedidosPecasRoutes);
 app.use('/api/financeiro/movimentacoes', movimentacoesRoutes);
+app.use('/api/notificacoes', notificacoesRoutes);
 app.use('/api', notFoundApi);
 
 
