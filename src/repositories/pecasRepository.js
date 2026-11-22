@@ -183,7 +183,27 @@ async function listarBaixasRecentes(limite = 20) {
   return rows;
 }
 
+// Peças em alerta para as notificações: abaixo do mínimo ("ABAIXO") ou
+// até 20% acima dele ("PROXIMO").
+async function listarAlertas() {
+  const [linhas] = await pool.execute(
+    `SELECT p.id_peca, p.nome,
+            p.quantidade_disponivel AS quantidade,
+            p.quantidade_minima AS estoque_minimo,
+            CASE WHEN p.quantidade_disponivel <= p.quantidade_minima
+                 THEN 'ABAIXO' ELSE 'PROXIMO' END AS situacao
+     FROM peca p
+     WHERE p.ativo = 1
+       AND p.quantidade_minima > 0
+       AND p.quantidade_disponivel <= CEIL(p.quantidade_minima * 1.2)
+     ORDER BY (p.quantidade_disponivel - p.quantidade_minima) ASC`
+  );
+
+  return linhas;
+}
+
 module.exports = {
+  listarAlertas,
   findAll,
   resumoPorSituacao,
   listarCategorias,
