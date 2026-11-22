@@ -8,6 +8,7 @@ import NotFound from './pages/NotFound';
 import Funcionarios from './pages/Funcionarios';
 import Usuarios from './pages/Usuarios';
 import Financeiro from './pages/Financeiro';
+import Inadimplencias from './pages/Inadimplencias';
 import Atendimentos from './pages/Atendimentos';
 import MeusOrcamentos from './pages/MeusOrcamentos';
 import MeusAgendamentos from './pages/MeusAgendamentos';
@@ -84,6 +85,14 @@ export default function App() {
             element={
               <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
                 <Financeiro />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/financeiro/inadimplencias"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
+                <Inadimplencias />
               </RequireAuth>
             }
           />

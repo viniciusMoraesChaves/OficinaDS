@@ -1,0 +1,156 @@
+/* Pedidos de peças: resumo, filtro, detalhe e montagem do pedido. */
+
+.search-panel--pedidos {
+  grid-template-columns: minmax(220px, 280px) auto;
+}
+
+.pedido-resumo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.pedido-resumo__item {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.pedido-resumo__item span {
+  color: #6b6d67;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pedido-resumo__item strong {
+  font-size: 22px;
+}
+
+.pedido-resumo__item.is-attention {
+  border-left: 4px solid var(--accent);
+}
+
+.pedido-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialog--pedido {
+  width: min(760px, calc(100% - 32px));
+}
+
+.pedido-form {
+  display: grid;
+  gap: 18px;
+}
+
+.pedido-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.pedido-info div {
+  display: grid;
+  gap: 2px;
+}
+
+.pedido-info dt {
+  color: #6b6d67;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pedido-info dd {
+  margin: 0;
+  font-size: 14px;
+}
+
+.pedido-info__wide {
+  grid-column: 1 / -1;
+}
+
+.pedido-decisao {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  font-size: 13px;
+}
+
+.pedido-decisao strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.pedido-decisao--rejeitado {
+  border-color: #efc7c3;
+  background: var(--danger-soft);
+}
+
+.pedido-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.pedido-itens-vazio {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 9px;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  font-size: 13px;
+}
+
+.pedido-itens-total {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.estoque-alerta {
+  display: block;
+  color: #8a5a00;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.field textarea.pedido-observacao {
+  min-height: 72px;
+  resize: vertical;
+}
+
+@media (max-width: 900px) {
+  .pedido-resumo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .search-panel--pedidos {
+    grid-template-columns: 1fr;
+  }
+
+  .pedido-info {
+    grid-template-columns: 1fr;
+  }
+
+  .pedido-add {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pedido-add .field:first-child {
+    grid-column: 1 / -1;
+  }
+}

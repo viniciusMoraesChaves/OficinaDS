@@ -1,0 +1,153 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { RequireAuth } from './components/RequireAuth';
+import { PERFIS } from './types/perfil';
+import Home from './pages/Home';
+import Clientes from './pages/Clientes';
+import NotFound from './pages/NotFound';
+import Funcionarios from './pages/Funcionarios';
+import Usuarios from './pages/Usuarios';
+import Financeiro from './pages/Financeiro';
+import Inadimplencias from './pages/Inadimplencias';
+import Atendimentos from './pages/Atendimentos';
+import MeusOrcamentos from './pages/MeusOrcamentos';
+import MeusAgendamentos from './pages/MeusAgendamentos';
+import Login from './pages/Login';
+import Cadastro from './pages/Cadastro';
+import Veiculos from './pages/Veiculos';
+import VeiculoHistorico from './pages/VeiculoHistorico';
+import Diagnosticos from './pages/Diagnosticos';
+import Agendamentos from './pages/Agendamentos';
+import Estoque from './pages/Estoque';
+import PedidosPecas from './pages/PedidosPecas';
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Cadastro />} />
+
+          <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
+
+          <Route
+            path="/clientes"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Clientes />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/funcionarios"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
+                <Funcionarios />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/atendimentos"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Atendimentos />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/meus-orcamentos"
+            element={
+              <RequireAuth perfis={[PERFIS.CLIENTE]}>
+                <MeusOrcamentos />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/meus-agendamentos"
+            element={
+              <RequireAuth perfis={[PERFIS.CLIENTE]}>
+                <MeusAgendamentos />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/usuarios"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
+                <Usuarios />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/financeiro"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
+                <Financeiro />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/financeiro/inadimplencias"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
+                <Inadimplencias />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/diagnosticos"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Diagnosticos />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/agendamentos"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Agendamentos />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/veiculos"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Veiculos />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/veiculos/:id/historico"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <VeiculoHistorico />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/estoque"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <Estoque />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/pedidos-pecas"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
+                <PedidosPecas />
+              </RequireAuth>
+            }
+          />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}

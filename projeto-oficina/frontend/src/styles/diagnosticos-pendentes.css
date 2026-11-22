@@ -1,0 +1,35 @@
+/* Lista "Aguardando diagnóstico" da página de Diagnósticos. */
+
+.diagnosticos-pendentes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagnosticos-pendentes li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+}
+
+.diagnosticos-pendentes li + li {
+  border-top: 1px solid var(--border);
+}
+
+.diagnosticos-pendentes span {
+  display: grid;
+  gap: 2px;
+}
+
+.diagnosticos-pendentes small {
+  color: #6b6d67;
+}
+
+@media (max-width: 640px) {
+  .diagnosticos-pendentes li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

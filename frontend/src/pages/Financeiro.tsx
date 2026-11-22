@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Feedback } from '../components/Feedback';
 import { Pagination } from '../components/Pagination';
@@ -14,8 +15,10 @@ import type {
   ResumoFinanceiro,
   TipoMovimentacao
 } from '../types/financeiro';
+import type { ResumoInadimplencia } from '../types/inadimplencia';
 import GraficoFinanceiro from '../components/GraficoFinanceiro';
 import '../styles/financeiro.css';
+import '../styles/painel.css';
 
 const LIMITE = 8;
 
@@ -93,6 +96,26 @@ function formVazio(): FormLancamento {
 }
 
 export default function Financeiro() {
+  const [resumoInad, setResumoInad] = useState<ResumoInadimplencia | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+
+    apiFetch<{ dados: ResumoInadimplencia }>('/api/financeiro/inadimplencias/resumo')
+      .then((resposta) => {
+        if (ativo) setResumoInad(resposta.dados);
+      })
+      .catch(() => {
+        if (ativo) setResumoInad(null);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const clientesInad = resumoInad?.clientesInadimplentes ?? 0;
+
   const [filtros, setFiltros] = useState<Filtros>(filtrosIniciais);
   const [atalho, setAtalho] = useState<Atalho>('mes');
   const [inputInicio, setInputInicio] = useState(filtros.inicio);
@@ -650,6 +673,23 @@ export default function Financeiro() {
           </form>
         </dialog>
       )}
+
+      <section className="painel-indicadores" aria-label="Áreas do financeiro">
+        <Link
+          className={`painel-card ${resumoInad && resumoInad.cobrancasVencidas > 0 ? 'painel-card--atencao' : ''}`}
+          to="/financeiro/inadimplencias"
+        >
+          <span className="painel-card__rotulo">Inadimplências</span>
+          <strong className="painel-card__valor">
+            {resumoInad ? formatCurrency(resumoInad.valorVencido) : '—'}
+          </strong>
+          <small>
+            {resumoInad
+              ? `${clientesInad} cliente${clientes === 1 ? '' : 's'} com valores vencidos`
+              : 'Consultar valores em aberto'}
+          </small>
+        </Link>
+      </section>
     </Layout>
   );
 }
