@@ -196,7 +196,7 @@ async function listarAlertas() {
      WHERE p.ativo = 1
        AND p.quantidade_minima > 0
        AND p.quantidade_disponivel <= CEIL(p.quantidade_minima * 1.2)
-     ORDER BY (p.quantidade_disponivel - p.quantidade_minima) ASC`
+     ORDER BY (CAST(p.quantidade_disponivel AS SIGNED) - CAST(p.quantidade_minima AS SIGNED)) ASC`
   );
 
   return linhas;
