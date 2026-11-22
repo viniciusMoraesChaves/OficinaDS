@@ -1,11 +1,16 @@
-// O módulo financeiro em si (faturamento, contas, relatórios) ainda não foi
-// implementado. Este endpoint existe só para já restringir o acesso à área
-// financeira, para quando as funcionalidades forem construídas.
+const movimentacoesRepository = require('../repositories/movimentacoesRepository');
+const { parseFiltrosMovimentacoes } = require('../utils/financeiro');
+
+// GET /api/financeiro/resumo?inicio=AAAA-MM-DD&fim=AAAA-MM-DD
+// Entradas, saídas e resultado (lucro ou prejuízo) do período. Sem período, considera tudo.
 async function resumo(req, res) {
+  const filtros = parseFiltrosMovimentacoes(req.query);
+  const dados = await movimentacoesRepository.resumo(filtros);
+
   res.json({
     dados: {
-      status: 'em_construcao',
-      mensagem: 'Módulo financeiro ainda não implementado.'
+      ...dados,
+      periodo: { inicio: filtros.inicio || null, fim: filtros.fim || null }
     }
   });
 }

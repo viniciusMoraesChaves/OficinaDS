@@ -1,0 +1,120 @@
+/* Controle financeiro: resumo, filtros de período e valores coloridos. */
+
+.financeiro-resumo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.financeiro-resumo__item {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.financeiro-resumo__item span {
+  color: #6b6d67;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.financeiro-resumo__item strong {
+  font-size: 22px;
+}
+
+.financeiro-resumo__item small {
+  color: #6b6d67;
+}
+
+.valor--entrada {
+  color: #1f6b3a;
+}
+
+.valor--saida {
+  color: #8b2f2f;
+}
+
+.financeiro-periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.financeiro-periodo__atalho {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.financeiro-periodo__atalho.is-active {
+  border-color: #f59e0b;
+  background: #fef3dc;
+  color: #7a4a00;
+}
+
+.search-panel--financeiro {
+  grid-template-columns: repeat(2, minmax(150px, 1fr)) repeat(2, minmax(140px, 1fr)) minmax(180px, 1.4fr) auto auto;
+}
+
+.origem-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #eceae5;
+  color: #4a4c47;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.origem-badge--cobranca {
+  background: #e6f4ea;
+  color: #1f6b3a;
+}
+
+.lancamento-form {
+  display: grid;
+  gap: 14px;
+}
+
+.lancamento-form__linha {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.lancamento-form__erro {
+  margin: 0;
+  color: #8b2f2f;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .search-panel--financeiro {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
+  .financeiro-resumo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .search-panel--financeiro,
+  .lancamento-form__linha {
+    grid-template-columns: 1fr;
+  }
+}

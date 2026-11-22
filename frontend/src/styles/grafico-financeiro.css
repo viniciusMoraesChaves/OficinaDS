@@ -1,0 +1,90 @@
+/* Gráfico de entradas e saídas da página Financeiro. */
+
+.grafico-financeiro {
+  margin-bottom: 18px;
+}
+
+.grafico-financeiro__legenda {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.grafico-financeiro__legenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grafico-financeiro__cor {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.grafico-financeiro__corpo {
+  padding: 4px 20px 16px;
+}
+
+.grafico-financeiro__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.grafico-financeiro__grade {
+  stroke: #e8e5e0;
+  stroke-width: 1;
+}
+
+.grafico-financeiro__base {
+  stroke: #b9b4ab;
+  stroke-width: 1.5;
+}
+
+.grafico-financeiro__texto {
+  fill: #6b6d67;
+  font-size: 11px;
+}
+
+/* Faixa invisível que dá destaque ao grupo de barras sob o mouse. */
+.grafico-financeiro__area {
+  fill: transparent;
+}
+
+.grafico-financeiro__area:hover {
+  fill: rgba(245, 158, 11, 0.1);
+}
+
+.grafico-financeiro__aviso {
+  margin: 0;
+  padding: 28px 0;
+  color: #6b6d67;
+  text-align: center;
+}
+
+.grafico-financeiro__aviso--erro {
+  color: #8b2f2f;
+}
+
+.grafico-financeiro__dados {
+  margin-top: 8px;
+}
+
+.grafico-financeiro__dados summary {
+  cursor: pointer;
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .grafico-financeiro__corpo {
+    padding: 4px 8px 12px;
+  }
+}
