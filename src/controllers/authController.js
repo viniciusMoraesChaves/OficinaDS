@@ -8,6 +8,7 @@ const perfisRepository = require('../repositories/perfisRepository');
 const { PERFIS } = require('../utils/perfis');
 const { DadosInvalidosError } = require('../utils/erros');
 const { apenasDigitos, exigirCpf, exigirEmail, exigirSenha, exigirTexto } = require('../utils/validacoes');
+const usuariosRepository = require('../repositories/usuariosRepository');
 
 const SALT_ROUNDS = 10;
 
@@ -48,9 +49,6 @@ async function login(req, res, next) {
       });
     }
 
-    // tipoAcesso é a opção escolhida na tela de login ("oficina" ou
-    // "cliente"). Confirma que bate com o perfil real da conta, evitando
-    // que a pessoa entre pela aba errada.
     if (tipoAcesso === 'cliente' && usuario.perfil !== PERFIS.CLIENTE) {
       return res.status(401).json({
         erro: 'PERFIL_INCOMPATIVEL',
@@ -77,7 +75,6 @@ async function cadastrar(req, res, next) {
   try {
     const { tipoAcesso } = req.body;
 
-    // Em produção, só clientes se cadastram sozinhos (CADASTRO_OFICINA_PUBLICO=false).
     if (tipoAcesso !== 'cliente' && !env.cadastroOficinaPublico) {
       return res.status(403).json({
         erro: 'CADASTRO_DESATIVADO',
@@ -109,8 +106,6 @@ async function cadastrar(req, res, next) {
         veiculo: lerVeiculo(req.body.veiculo)
       });
     } else {
-      // Cadastro público da oficina entra sempre como Funcionario; virar
-      // Administrador acontece pelo cargo "Gerente" (feito por um Administrador).
       nomePerfil = PERFIS.FUNCIONARIO;
       const perfil = await buscarPerfilOuFalhar(nomePerfil);
       const cargo = await cargosRepository.findPadraoCadastro();
@@ -156,8 +151,6 @@ async function buscarPerfilOuFalhar(nomePerfil) {
   return perfil;
 }
 
-// Veículo é opcional no cadastro do cliente; se qualquer campo for enviado,
-// placa, marca, modelo e ano passam a ser obrigatórios.
 function lerVeiculo(bruto) {
   if (!bruto || typeof bruto !== 'object') return null;
 
@@ -183,4 +176,233 @@ async function perfilAtual(req, res) {
   });
 }
 
-module.exports = { login, cadastrar, perfilAtual };
+async function obterMeuPerfil(req, res) {
+  const usuario = await usuariosRepository.buscarDadosMeuPerfil(
+    req.usuarioLogado.id
+  );
+
+  if (!usuario) {
+    return res.status(404).json({
+      mensagem: 'Perfil não encontrado.'
+    });
+  }
+
+  res.json({ dados: usuario });
+}
+
+async function atualizarEmailMeuPerfil(req, res, next) {
+  try {
+    const idUsuario = req.usuarioLogado.id;
+    const email = exigirEmail(req.body.email);
+
+    const emailEmUso =
+      await usuariosRepository.emailPertenceAOutroUsuario(
+        email,
+        idUsuario
+      );
+
+    if (emailEmUso) {
+      return res.status(409).json({
+        mensagem: 'Este e-mail já está sendo utilizado por outra conta.'
+      });
+    }
+
+    const atualizado =
+      await usuariosRepository.atualizarEmailMeuPerfil(
+        idUsuario,
+        email
+      );
+
+    if (!atualizado) {
+      return res.status(404).json({
+        mensagem: 'Usuário não encontrado.'
+      });
+    }
+
+    return res.json({
+      mensagem: 'E-mail atualizado com sucesso.'
+    });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({
+        mensagem: 'Este e-mail já está sendo utilizado por outra conta.'
+      });
+    }
+
+    next(error);
+  }
+}
+
+async function atualizarDadosPessoaisMeuPerfil(req, res, next) {
+  try {
+    const idUsuario = req.usuarioLogado.id;
+    const { nome, telefone, endereco, cpf } = req.body ?? {};
+
+    if (typeof nome !== 'string' || !nome.trim()) {
+      return res.status(400).json({
+        mensagem: 'Informe um nome válido.'
+      });
+    }
+
+    if (typeof telefone !== 'string') {
+      return res.status(400).json({
+        mensagem: 'O telefone deve ser informado como texto.'
+      });
+    }
+
+    if (cpf !== undefined && typeof cpf !== 'string') {
+      return res.status(400).json({
+        mensagem: 'O CPF deve ser informado como texto.'
+      });
+    }
+
+    if (cpf !== undefined && cpf.trim() && apenasDigitos(cpf).length !== 11) {
+      return res.status(400).json({
+        mensagem: 'Informe um CPF com 11 dígitos.'
+      });
+    }
+
+    if (endereco !== undefined && typeof endereco !== 'string') {
+      return res.status(400).json({
+        mensagem: 'Informe um endereço válido.'
+      });
+    }
+
+
+    if (nome.trim().length > 120) {
+      return res.status(400).json({
+        mensagem: 'O nome deve ter no máximo 120 caracteres.'
+      });
+    }
+
+    if (telefone.trim().length > 20) {
+      return res.status(400).json({
+        mensagem: 'O telefone deve ter no máximo 20 caracteres.'
+      });
+    }
+
+    if ((endereco ?? '').trim().length > 255) {
+      return res.status(400).json({
+        mensagem: 'O endereço deve ter no máximo 255 caracteres.'
+      });
+    }
+
+    const resultado =
+      await usuariosRepository.atualizarDadosPessoaisMeuPerfil(
+        idUsuario,
+        {
+          nome: nome.trim(),
+          telefone: telefone.trim(),
+          endereco: endereco === undefined ? undefined : endereco.trim(),
+          cpf: cpf === undefined ? undefined : apenasDigitos(cpf)
+        }
+      );
+
+    if (!resultado.atualizado) {
+      if (resultado.motivo === 'USUARIO_NAO_ENCONTRADO') {
+        return res.status(404).json({
+          mensagem: 'Usuário não encontrado.'
+        });
+      }
+
+      if (resultado.motivo === 'SEM_CADASTRO_VINCULADO') {
+        return res.status(409).json({
+          mensagem: 'Esta conta não possui cadastro pessoal vinculado.'
+        });
+      }
+
+      if (resultado.motivo === 'CPF_NAO_EDITAVEL') {
+        return res.status(403).json({
+          mensagem: 'O CPF desta conta não pode ser alterado pelo Meu Perfil.'
+        });
+      }
+    }
+
+    return res.json({
+      mensagem: 'Dados pessoais atualizados com sucesso.'
+    });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY' && req.body?.cpf !== undefined) {
+      return res.status(409).json({
+        mensagem: 'Este CPF já está cadastrado em outra conta administrativa.'
+      });
+    }
+    next(error);
+  }
+}
+
+async function alterarSenhaMeuPerfil(req, res, next) {
+  try {
+    const idUsuario = req.usuarioLogado.id;
+    const { senhaAtual, novaSenha } = req.body ?? {};
+
+    if (
+      typeof senhaAtual !== 'string' ||
+      typeof novaSenha !== 'string' ||
+      !senhaAtual ||
+      !novaSenha
+    ) {
+      return res.status(400).json({
+        mensagem: 'Informe a senha atual e a nova senha.'
+      });
+    }
+
+    if (
+      novaSenha.length < 8 ||
+      Buffer.byteLength(novaSenha, 'utf8') > 72
+    ) {
+      return res.status(400).json({
+        mensagem: 'A nova senha deve ter pelo menos 8 caracteres e no máximo 72 bytes.'
+      });
+    }
+
+    if (senhaAtual === novaSenha) {
+      return res.status(400).json({
+        mensagem: 'A nova senha deve ser diferente da senha atual.'
+      });
+    }
+
+    const hashAtual =
+      await usuariosRepository.buscarSenhaHashMeuPerfil(idUsuario);
+
+    if (!hashAtual) {
+      return res.status(404).json({
+        mensagem: 'Usuário não encontrado.'
+      });
+    }
+
+    const senhaCorreta = await bcrypt.compare(
+      senhaAtual,
+      hashAtual
+    );
+
+    if (!senhaCorreta) {
+      return res.status(401).json({
+        mensagem: 'Senha atual incorreta.'
+      });
+    }
+
+    const novoHash = await bcrypt.hash(novaSenha, 12);
+
+    const atualizado =
+      await usuariosRepository.atualizarSenhaMeuPerfil(
+        idUsuario,
+        hashAtual,
+        novoHash
+      );
+
+    if (!atualizado) {
+      return res.status(409).json({
+        mensagem: 'A senha foi alterada em outra operação. Tente novamente.'
+      });
+    }
+
+    return res.json({
+      mensagem: 'Senha alterada com sucesso.'
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { login, cadastrar, perfilAtual, obterMeuPerfil, atualizarEmailMeuPerfil, atualizarDadosPessoaisMeuPerfil, alterarSenhaMeuPerfil };
