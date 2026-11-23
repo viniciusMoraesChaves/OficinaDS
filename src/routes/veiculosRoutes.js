@@ -9,6 +9,7 @@ const router = express.Router();
 const equipe = protegerRota(PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO);
 
 router.get('/', equipe, veiculosController.list);
+router.post('/', equipe, veiculosController.create);
 router.get('/:id', equipe, veiculosController.detail);
 
 module.exports = router;
