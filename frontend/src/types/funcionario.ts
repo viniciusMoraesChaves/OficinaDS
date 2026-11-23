@@ -10,6 +10,9 @@ export type Funcionario = {
   telefone: string;
   dataAdmissao: string;
   ativo: boolean | number;
+  // Média das notas dos clientes (null enquanto ninguém avaliou) e quantas notas foram.
+  avaliacaoMedia?: number | null;
+  totalAvaliacoes?: number;
 };
 
 export type StatusFiltro = 'todos' | 'ativos' | 'inativos';

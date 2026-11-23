@@ -1,4 +1,25 @@
 const { pool } = require('../config/database');
+const { resumirAvaliacoes } = require('../utils/avaliacoes');
+
+// Notas que os clientes deram ao funcionário (script 30). Sem nenhuma avaliação, os
+// totais vêm zerados e a média fica null.
+const AVALIACOES_SELECT = `
+       COALESCE(av.totalAvaliacoes, 0) AS totalAvaliacoes,
+       COALESCE(av.somaNotas, 0) AS somaNotas`;
+
+const AVALIACOES_JOIN = `
+     LEFT JOIN (
+       SELECT id_funcionario, COUNT(*) AS totalAvaliacoes, SUM(nota) AS somaNotas
+       FROM avaliacao_funcionario
+       GROUP BY id_funcionario
+     ) av ON av.id_funcionario = f.id_funcionario`;
+
+// Troca a soma das notas pela média (calculada em utils/avaliacoes.js).
+function comAvaliacao({ somaNotas, totalAvaliacoes, ...funcionario }) {
+  const resumo = resumirAvaliacoes(somaNotas, totalAvaliacoes);
+
+  return { ...funcionario, avaliacaoMedia: resumo.media, totalAvaliacoes: resumo.total };
+}
 
 function buildWhere({ busca, status }) {
   const conditions = [];
@@ -50,16 +71,16 @@ async function search({ busca, status, limite, offset }) {
        f.data_admissao AS dataAdmissao,
        f.ativo,
        ca.id_cargo AS cargoId,
-       ca.nome AS cargo
+       ca.nome AS cargo,${AVALIACOES_SELECT}
      FROM funcionario f
-     INNER JOIN cargo ca ON ca.id_cargo = f.id_cargo
+     INNER JOIN cargo ca ON ca.id_cargo = f.id_cargo${AVALIACOES_JOIN}
      ${where.clause}
      ORDER BY f.nome ASC, f.id_funcionario ASC
      LIMIT ? OFFSET ?`,
     [...where.params, limite, offset]
   );
 
-  return { rows, total: countRows[0].total };
+  return { rows: rows.map(comAvaliacao), total: countRows[0].total };
 }
 
 // Posição (1, 2, 3...) do funcionário na listagem sem filtros. O front usa
@@ -167,14 +188,14 @@ async function findById(idFuncionario) {
        DATE_FORMAT(f.data_admissao, '%Y-%m-%d') AS dataAdmissao,
        f.ativo,
        ca.id_cargo AS cargoId,
-       ca.nome AS cargo
+       ca.nome AS cargo,${AVALIACOES_SELECT}
      FROM funcionario f
-     INNER JOIN cargo ca ON ca.id_cargo = f.id_cargo
+     INNER JOIN cargo ca ON ca.id_cargo = f.id_cargo${AVALIACOES_JOIN}
      WHERE f.id_funcionario = ?`,
     [idFuncionario]
   );
 
-  return rows[0] || null;
+  return rows[0] ? comAvaliacao(rows[0]) : null;
 }
 
 // Reúne serviços agendados e atendimentos da oficina sem perder o histórico.

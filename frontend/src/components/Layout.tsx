@@ -12,6 +12,7 @@ import {
   FileText,
   ClipboardList,
   Stethoscope,
+  Star,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PERFIS, type Perfil } from '../types/perfil';
@@ -64,7 +65,8 @@ const gruposPorPerfil: Record<Perfil, Grupo[]> = {
       links: [
         inicio,
         { to: '/meus-orcamentos', label: 'Meus orçamentos', icon: <FileText size={20} /> },
-        { to: '/meus-agendamentos', label: 'Meus agendamentos', icon: <CalendarDays size={20} /> }
+        { to: '/meus-agendamentos', label: 'Meus agendamentos', icon: <CalendarDays size={20} /> },
+        { to: '/minhas-avaliacoes', label: 'Minhas avaliações', icon: <Star size={20} /> }
       ]
     }
   ]
