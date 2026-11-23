@@ -1,6 +1,7 @@
 const express = require('express');
 const orcamentosController = require('../controllers/orcamentosController');
 const pecasAtendimentoController = require('../controllers/pecasAtendimentoController');
+const danosChegadaController = require('../controllers/danosChegadaController');
 const { protegerRota } = require('../middlewares/permissoes');
 const { PERFIS } = require('../utils/perfis');
 
@@ -9,6 +10,8 @@ const router = express.Router();
 const equipe = protegerRota(PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO);
 const cliente = protegerRota(PERFIS.CLIENTE);
 router.patch('/:id/status', equipe, orcamentosController.atualizarStatusAtendimento);
+router.get('/:id/danos', equipe, danosChegadaController.listar);
+router.post('/:id/danos', equipe, danosChegadaController.registrar);
 router.get('/:id/pecas', equipe, pecasAtendimentoController.listar);
 router.post('/:id/pecas', equipe, pecasAtendimentoController.adicionar);
 router.patch('/:id/pecas/:idPecaUtilizada', equipe, pecasAtendimentoController.editar);

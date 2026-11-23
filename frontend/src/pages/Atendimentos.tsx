@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Layout } from '../components/Layout';
 import { Feedback } from '../components/Feedback';
+import { DanosChegadaDialog } from '../components/DanosChegadaDialog';
 import { apiFetch } from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import type { ClienteOpcao } from '../types/cliente';
@@ -29,6 +30,7 @@ export default function Atendimentos() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
+  const [atendimentoDanos, setAtendimentoDanos] = useState<AtendimentoAberto | null>(null);
 
   // --- adicionar cliente ao atendimento ---
   const adicionarDialogRef = useRef<HTMLDialogElement>(null);
@@ -549,6 +551,15 @@ export default function Atendimentos() {
                       Atualizar progresso
                     </button>{' '}
                     <button
+                      className="button button--secondary button--small"
+                      type="button"
+                      onClick={() => setAtendimentoDanos(a)}
+                      title="Registrar e consultar danos na chegada"
+                      aria-label={`Danos na chegada do veículo ${a.placa}`}
+                    >
+                      Danos
+                    </button>{' '}
+                    <button
                       className="button button--primary button--small"
                       type="button"
                       onClick={() => abrirModalOrcamento(a)}
@@ -862,6 +873,11 @@ export default function Atendimentos() {
           </form>
         </dialog>
       )}
+
+      <DanosChegadaDialog
+        atendimento={atendimentoDanos}
+        onClose={() => setAtendimentoDanos(null)}
+      />
 
       {modalAdicionarAberto && (
         <dialog
