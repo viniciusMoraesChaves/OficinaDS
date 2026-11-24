@@ -246,7 +246,7 @@ OficinaDS/
 │   ├── 24_cancelamento_agendamento.sql
 │   ├── 27_inadimplencias.sql
 │   ├── 28_dados_teste_inadimplencias.sql
-│   └── 29_consultas_para_estudar_inadimplencias.sql
+│   ├── 29_consultas_para_estudar_inadimplencias.sql
 │   ├── 30_movimentacoes_financeiras.sql
 │   ├── 31_dados_teste_movimentacoes.sql
 │   └── 32_avaliacoes_funcionarios.sql
