@@ -12,6 +12,12 @@ router.get(
 );
 
 router.get(
+  '/relatorio-diario',
+  protegerRota(PERFIS.ADMINISTRADOR),
+  funcionariosController.relatorioDiario
+);
+
+router.get(
   '/',
   protegerRota(PERFIS.ADMINISTRADOR),
   funcionariosController.search
@@ -40,4 +46,5 @@ router.patch(
   protegerRota(PERFIS.ADMINISTRADOR),
   funcionariosController.updateCargo
 );
+
 module.exports = router;

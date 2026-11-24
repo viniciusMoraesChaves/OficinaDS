@@ -61,4 +61,17 @@ async function obter(req, res) {
   });
 }
 
-module.exports = { obter };
+async function pesquisar(req, res) {
+  const q = String(req.query.q || '').trim();
+
+  if (q.length < 2) {
+    return res.json({
+      dados: { clientes: [], ordensServico: [] }
+    });
+  }
+
+  const resultado = await painelRepository.pesquisarGlobal(q);
+  return res.json({ dados: resultado });
+}
+
+module.exports = { obter, pesquisar };

@@ -14,6 +14,18 @@ const { parseId } = require('../utils/queryParams');
 
 const SALT_ROUNDS = 10;
 
+const PESO_DIFICULDADE = {
+  baixa: 1.0,
+  media: 1.5,
+  alta: 2.0
+};
+
+const TEMPO_BASE_DIFICULDADE = {
+  baixa: 45,
+  media: 90,
+  alta: 180
+};
+
 async function search(req, res) {
   const pagination = parsePagination(req.query);
   const filters = parseEmployeeFilters(req.query);
@@ -237,4 +249,142 @@ async function criar(req, res) {
   });
 }
 
-module.exports = { search, listarOpcoes, obter, atualizar, updateCargo, criar };
+function normalizarDificuldade(valor) {
+  const texto = String(valor || 'media')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (texto === 'baixa' || texto === 'alta' || texto === 'media') {
+    return texto;
+  }
+  return 'media';
+}
+
+function validarDataRelatorio(valor) {
+  if (!valor) {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  const data = String(valor).trim();
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data);
+
+  if (!partes) {
+    const erro = new Error('Informe uma data válida no formato AAAA-MM-DD.');
+    erro.statusCode = 400;
+    throw erro;
+  }
+
+  return data;
+}
+
+function calcularDesempenho(servicos) {
+  if (!servicos || servicos.length === 0) {
+    return {
+      totalServicos: 0,
+      tempoTotalMinutos: 0,
+      tempoMedioMinutos: 0,
+      distribuicaoDificuldade: { baixa: 0, media: 0, alta: 0 },
+      pontuacaoBruta: 0,
+      indiceDesempenho: 0
+    };
+  }
+
+  let tempoTotalMinutos = 0;
+  let somaEficienciaPonderada = 0;
+  let somaPesos = 0;
+  const distribuicaoDificuldade = { baixa: 0, media: 0, alta: 0 };
+
+  for (const s of servicos) {
+    const dificuldade = normalizarDificuldade(s.dificuldade);
+    const peso = PESO_DIFICULDADE[dificuldade];
+    const tempoReferencia = TEMPO_BASE_DIFICULDADE[dificuldade];
+    const tempoReal = Math.max(Number(s.tempoExecucaoMinutos) || 1, 1);
+
+    distribuicaoDificuldade[dificuldade] += 1;
+    tempoTotalMinutos += tempoReal;
+
+    const razaoTempo = Math.min(Math.max(tempoReferencia / tempoReal, 0.5), 1.5);
+    somaEficienciaPonderada += razaoTempo * peso;
+    somaPesos += peso;
+  }
+
+  const mediaEficiencia = somaPesos > 0 ? somaEficienciaPonderada / somaPesos : 0;
+  const indiceDesempenho = Math.min(Math.round(mediaEficiencia * 75), 100);
+
+  return {
+    totalServicos: servicos.length,
+    tempoTotalMinutos,
+    tempoMedioMinutos: Math.round(tempoTotalMinutos / servicos.length),
+    distribuicaoDificuldade,
+    pontuacaoBruta: Number(somaEficienciaPonderada.toFixed(2)),
+    indiceDesempenho
+  };
+}
+
+async function relatorioDiario(req, res) {
+  const data = validarDataRelatorio(req.query.data);
+  const idFuncionario = req.query.idFuncionario ? parseId(req.query.idFuncionario) : null;
+
+  const [registros, historicoSemanal] = await Promise.all([
+    funcionariosRepository.buscarDesempenhoPorDia(data, idFuncionario),
+    funcionariosRepository.buscarHistoricoSemanalDesempenho(data, idFuncionario)
+  ]);
+
+  const mapaFuncionarios = new Map();
+
+  for (const row of registros) {
+    if (!mapaFuncionarios.has(row.idFuncionario)) {
+      mapaFuncionarios.set(row.idFuncionario, {
+        id: row.idFuncionario,
+        nome: row.funcionarioNome,
+        cargo: row.cargo,
+        servicos: []
+      });
+    }
+
+    if (row.idAtendimento) {
+      mapaFuncionarios.get(row.idFuncionario).servicos.push({
+        idAtendimento: row.idAtendimento,
+        servico: row.servico,
+        tempoExecucaoMinutos: Number(row.tempoExecucaoMinutos || 0),
+        dificuldade: normalizarDificuldade(row.dificuldadeDiagnostico),
+        criadoEm: row.criadoEm,
+        finalizadoEm: row.finalizadoEm
+      });
+    }
+  }
+
+  const funcionarios = Array.from(mapaFuncionarios.values())
+    .map((func) => ({
+      ...func,
+      ...calcularDesempenho(func.servicos)
+    }))
+    .sort((a, b) => b.indiceDesempenho - a.indiceDesempenho || a.nome.localeCompare(b.nome));
+
+  const totalServicosDia = funcionarios.reduce((acc, f) => acc + f.totalServicos, 0);
+  const ativosNoDia = funcionarios.filter((f) => f.totalServicos > 0);
+  const mediaDesempenhoEquipe =
+    ativosNoDia.length > 0
+      ? Math.round(ativosNoDia.reduce((acc, f) => acc + f.indiceDesempenho, 0) / ativosNoDia.length)
+      : 0;
+
+  return res.json({
+    dados: {
+      dataReferencia: data,
+      resumoGeral: {
+        totalServicosDia,
+        mediaDesempenhoEquipe
+      },
+      funcionarios,
+      graficoSemanal: historicoSemanal.map((h) => ({
+        dia: h.dia,
+        totalServicos: Number(h.totalServicos),
+        tempoMedioMinutos: Number(h.tempoMedioMinutos)
+      }))
+    }
+  });
+}
+
+module.exports = { search, listarOpcoes, obter, atualizar, updateCargo, criar, relatorioDiario };

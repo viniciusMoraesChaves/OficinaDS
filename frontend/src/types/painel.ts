@@ -30,3 +30,29 @@ export type PainelResponse = {
     pendencias: SecaoPendencia[];
   };
 };
+
+export type ClientePesquisaGlobal = {
+  id: number;
+  nome: string;
+  cpf: string;
+  telefone: string | null;
+  email: string | null;
+};
+
+export type OrdemServicoPesquisaGlobal = {
+  id: number;
+  atendimentoId: number | null;
+  status: string;
+  descricaoProblema: string | null;
+  cliente: string;
+  placa: string;
+  marca: string;
+  modelo: string;
+};
+
+export type PesquisaGlobalResponse = {
+  dados: {
+    clientes: ClientePesquisaGlobal[];
+    ordensServico: OrdemServicoPesquisaGlobal[];
+  };
+};

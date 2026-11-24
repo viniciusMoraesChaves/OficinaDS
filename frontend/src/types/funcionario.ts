@@ -40,3 +40,47 @@ export type ServicoFuncionario = {
 export type FuncionarioDetalhado = Funcionario & {
   servicos: ServicoFuncionario[];
 };
+
+export type DificuldadeDiagnostico = 'baixa' | 'media' | 'alta';
+
+export type ServicoDesempenho = {
+  idAtendimento: number;
+  servico: string;
+  tempoExecucaoMinutos: number;
+  dificuldade: DificuldadeDiagnostico;
+  criadoEm: string;
+  finalizadoEm: string;
+};
+
+export type DesempenhoFuncionario = {
+  id: number;
+  nome: string;
+  cargo: string;
+  totalServicos: number;
+  tempoTotalMinutos: number;
+  tempoMedioMinutos: number;
+  distribuicaoDificuldade: Record<DificuldadeDiagnostico, number>;
+  pontuacaoBruta: number;
+  indiceDesempenho: number;
+  servicos: ServicoDesempenho[];
+};
+
+export type PontoGraficoSemanal = {
+  dia: string;
+  totalServicos: number;
+  tempoMedioMinutos: number;
+};
+
+export type RelatorioDiarioDados = {
+  dataReferencia: string;
+  resumoGeral: {
+    totalServicosDia: number;
+    mediaDesempenhoEquipe: number;
+  };
+  funcionarios: DesempenhoFuncionario[];
+  graficoSemanal: PontoGraficoSemanal[];
+};
+
+export type RelatorioDiarioResponse = {
+  dados: RelatorioDiarioDados;
+};

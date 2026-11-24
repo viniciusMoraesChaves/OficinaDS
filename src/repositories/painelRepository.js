@@ -162,9 +162,71 @@ async function listasCliente(idCliente) {
   return { orcamentos };
 }
 
+async function pesquisarGlobal(termo) {
+  const busca = String(termo || '').trim();
+  if (!busca) {
+    return { clientes: [], ordensServico: [] };
+  }
+
+  const like = `%${busca}%`;
+  const digitos = busca.replace(/\D/g, '');
+  const cpfTelefoneLike = digitos ? `%${digitos}%` : like;
+  const numeroOs = /^\d+$/.test(digitos) ? Number(digitos) : -1;
+
+  const [clientes, ordensServico] = await Promise.all([
+    tentar(() =>
+      listar(
+        `SELECT
+           c.id_cliente AS id,
+           c.nome,
+           c.cpf,
+           c.telefone,
+           c.email
+         FROM cliente c
+         WHERE c.nome LIKE ?
+            OR c.cpf LIKE ?
+            OR c.telefone LIKE ?
+            OR c.email LIKE ?
+         ORDER BY c.nome ASC
+         LIMIT 6`,
+        [like, cpfTelefoneLike, cpfTelefoneLike, like]
+      )
+    ),
+    tentar(() =>
+      listar(
+        `SELECT
+           os.id_ordem AS id,
+           os.id_atendimento AS atendimentoId,
+           os.status,
+           os.descricao_problema AS descricaoProblema,
+           c.nome AS cliente,
+           v.placa,
+           v.marca,
+           v.modelo
+         FROM ordem_servico os
+         INNER JOIN cliente c ON c.id_cliente = os.id_cliente
+         INNER JOIN veiculo v ON v.id_veiculo = os.id_veiculo
+         WHERE os.id_ordem = ?
+            OR os.descricao_problema LIKE ?
+            OR c.nome LIKE ?
+            OR v.placa LIKE ?
+         ORDER BY os.id_ordem DESC
+         LIMIT 6`,
+        [numeroOs, like, like, like]
+      )
+    )
+  ]);
+
+  return {
+    clientes: clientes || [],
+    ordensServico: ordensServico || []
+  };
+}
+
 module.exports = {
   contagensEquipe,
   listasEquipe,
   contagensCliente,
-  listasCliente
+  listasCliente,
+  pesquisarGlobal
 };
