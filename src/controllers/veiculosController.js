@@ -1,4 +1,6 @@
 const veiculosRepository = require('../repositories/veiculosRepository');
+const { DadosInvalidosError } = require('../utils/erros');
+const { parseNovoVeiculo } = require('../utils/veiculos');
 const {
   parsePagination,
   buildPagination
@@ -45,3 +47,23 @@ async function detail(req, res) {
 }
 
 module.exports.detail = detail;
+
+
+// Cadastro pela equipe: placa única e vínculo obrigatório com cliente ativo.
+async function create(req, res, next) {
+  try {
+    const dados = parseNovoVeiculo(req.body);
+    const clienteExiste = await veiculosRepository.clienteAtivoExiste(dados.clienteId);
+
+    if (!clienteExiste) {
+      throw new DadosInvalidosError('O cliente selecionado não existe ou está inativo.');
+    }
+
+    const id = await veiculosRepository.create(dados);
+    return res.status(201).json({ dados: { id } });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports.create = create;

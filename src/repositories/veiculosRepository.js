@@ -69,3 +69,24 @@ async function findById(id) {
 }
 
 module.exports.findById = findById;
+
+
+async function clienteAtivoExiste(clienteId) {
+  const [rows] = await pool.execute(
+    'SELECT 1 FROM cliente WHERE id_cliente = ? AND ativo = 1 LIMIT 1',
+    [clienteId]
+  );
+  return rows.length > 0;
+}
+
+async function create({ clienteId, placa, marca, modelo, ano, cor, chassi }) {
+  const [result] = await pool.execute(
+    `INSERT INTO veiculo (id_cliente, placa, marca, modelo, ano, cor, chassi)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [clienteId, placa, marca, modelo, ano, cor, chassi]
+  );
+  return result.insertId;
+}
+
+module.exports.clienteAtivoExiste = clienteAtivoExiste;
+module.exports.create = create;

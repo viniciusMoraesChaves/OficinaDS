@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { Layout } from '../components/Layout';
+import { NovoVeiculoDialog } from '../components/NovoVeiculoDialog';
 import { listarVeiculos } from '../services/veiculoService';
 import type { VeiculoLista } from '../types/veiculo';
 import { dataRelativa } from '../utils/historicoFormat';
@@ -13,7 +14,9 @@ const ESTILOS = `
   display: flex; flex-direction: column; gap: 18px; color: var(--vl-text); font-family: inherit;
 }
 .vl-page *, .vl-page *::before, .vl-page *::after { box-sizing: border-box; }
-.vl-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.vl-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; }
+.vl-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
+.vl-actions .vl-retry { white-space: nowrap; }
 .vl-search {
   display: flex; align-items: center; gap: 8px; flex: 1 1 280px; max-width: 420px; height: 38px;
   padding: 0 12px; border: 1px solid var(--vl-line); border-radius: 8px; background: var(--vl-card); color: var(--vl-muted);
@@ -58,6 +61,7 @@ const ESTILOS = `
 }
 .vl-skeleton { height: 54px; margin: 10px 18px; border-radius: 8px; background: linear-gradient(90deg, #f0eee9 25%, #f8f7f4 37%, #f0eee9 63%); background-size: 400% 100%; animation: vl-shimmer 1.4s ease infinite; }
 @keyframes vl-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@media (max-width: 600px) { .vl-search { max-width: none; flex-basis: 100%; } .vl-actions { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .vl-skeleton { animation: none; } }
 `;
 
@@ -67,6 +71,8 @@ export default function Veiculos() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
+  const [novoAberto, setNovoAberto] = useState(false);
+  const [mensagem, setMensagem] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -114,12 +120,19 @@ export default function Veiculos() {
               onChange={(e) => setBusca(e.target.value)}
             />
           </label>
-          {!carregando && !erro && (
-            <span className="vl-count">
-              {veiculos.length} {veiculos.length === 1 ? 'veículo' : 'veículos'}
-            </span>
-          )}
+          <div className="vl-actions">
+            <button type="button" className="vl-retry" onClick={() => { setMensagem(''); setNovoAberto(true); }}>
+              + Cadastrar veículo
+            </button>
+            {!carregando && !erro && (
+              <span className="vl-count">
+                {veiculos.length} {veiculos.length === 1 ? 'veículo' : 'veículos'}
+              </span>
+            )}
+          </div>
         </div>
+
+        {mensagem && <p role="status" style={{ margin: 0, fontSize: 14, color: '#166534' }}>{mensagem}</p>}
 
         <div className="vl-card">
           {erro && (
@@ -187,6 +200,15 @@ export default function Veiculos() {
             </div>
           )}
         </div>
+        <NovoVeiculoDialog
+          aberto={novoAberto}
+          onClose={() => setNovoAberto(false)}
+          onCriado={() => {
+            setMensagem('Veículo cadastrado com sucesso.');
+            setBusca('');
+            setTentativa((valor) => valor + 1);
+          }}
+        />
       </div>
     </Layout>
   );
