@@ -53,6 +53,7 @@ const administracao: Grupo = {
   titulo: 'Administração',
   links: [
     { to: '/funcionarios', label: 'Funcionários', icon: <ClipboardList size={20} /> },
+    { to: '/presenca', label: 'Presença', icon: '◉', end: false },
     { to: '/usuarios', label: 'Usuários', icon: <UserRound size={20} /> },
     { to: '/financeiro', label: 'Financeiro', icon: <Wallet size={20} />, end: true },
     { to: '/financeiro/inadimplencias', label: 'Inadimplências', icon: <Receipt size={20} /> }

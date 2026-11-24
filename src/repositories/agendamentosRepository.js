@@ -18,6 +18,7 @@ const SELECT_AGENDAMENTO = `
     DATE_FORMAT(ag.cancelado_em, '${FORMATO_DATA_HORA}') AS canceladoEm,
     ag.cancelado_por_usuario AS canceladoPorUsuarioId,
     uc.email AS canceladoPor,
+    DATE_FORMAT(ag.presenca_registrada_em, '${FORMATO_DATA_HORA}') AS presencaRegistradaEm,
     ag.id_veiculo AS veiculoId,
     ag.id_funcionario AS funcionarioId,
     c.nome AS cliente,
@@ -38,8 +39,8 @@ async function findAll() {
   // cancelados ao final.
   const [rows] = await pool.execute(
     `${SELECT_AGENDAMENTO}
-     ORDER BY (ag.status IN (?, ?)) ASC, ag.data_hora ASC, ag.id_agendamento ASC`,
-    [STATUS.CONCLUIDO, STATUS.CANCELADO]
+     ORDER BY (ag.status IN (?, ?, ?)) ASC, ag.data_hora ASC, ag.id_agendamento ASC`,
+    [STATUS.CONCLUIDO, STATUS.CANCELADO, STATUS.NAO_COMPARECEU]
   );
 
   return rows;
@@ -275,7 +276,43 @@ async function cancelar(id, idUsuario, motivo, validar) {
   return encontrado ? findById(id) : null;
 }
 
+// Registra presença/não comparecimento com a linha bloqueada, para o status ser
+// conferido de novo e duas requisições não registrarem o mesmo agendamento.
+async function registrarPresenca(id, idUsuario, novoStatus, validar) {
+  const encontrado = await comTransacao(async (conexao) => {
+    const [linhas] = await conexao.execute(
+      `SELECT
+         id_agendamento AS id,
+         status,
+         DATE_FORMAT(data_hora, '${FORMATO_DATA_HORA}') AS dataHora
+       FROM agendamento
+       WHERE id_agendamento = ?
+       FOR UPDATE`,
+      [id]
+    );
+
+    const atual = linhas[0];
+    if (!atual) return false;
+
+    validar(atual);
+
+    await conexao.execute(
+      `UPDATE agendamento
+       SET status = ?,
+           presenca_registrada_em = CURRENT_TIMESTAMP,
+           presenca_registrada_por_usuario = ?
+       WHERE id_agendamento = ?`,
+      [novoStatus, idUsuario, id]
+    );
+
+    return true;
+  });
+
+  return encontrado ? findById(id) : null;
+}
+
 module.exports = {
+  registrarPresenca,
   findAll,
   findByCliente,
   findById,

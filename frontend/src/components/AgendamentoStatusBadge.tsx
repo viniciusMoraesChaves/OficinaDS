@@ -6,6 +6,7 @@ const CLASSE_POR_STATUS: Record<StatusAgendamento, string> = {
   'Em atendimento': 'is-progress',
   Concluído: 'is-done',
   Cancelado: 'is-inactive',
+  'Não compareceu': 'is-inactive',
 };
 
 export function AgendamentoStatusBadge({ status }: { status: StatusAgendamento }) {

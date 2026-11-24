@@ -2,6 +2,7 @@ const agendamentosRepository = require('../repositories/agendamentosRepository')
 const clientesRepository = require('../repositories/clientesRepository');
 const regras = require('../utils/regrasAgendamento');
 const cancelamento = require('../utils/cancelamentoAgendamento');
+const presenca = require('../utils/presencaAgendamento');
 const { parseId, ValidationError } = require('../utils/queryParams');
 
 // Relógio isolado em um objeto para os testes poderem fixar "agora".
@@ -37,7 +38,8 @@ function comRegrasDeAlteracao(agendamento, agora) {
   return {
     ...agendamento,
     reagendamento: regras.avaliarReagendamento(agendamento, agora),
-    cancelamento: cancelamento.avaliarCancelamento(agendamento, agora)
+    cancelamento: cancelamento.avaliarCancelamento(agendamento, agora),
+    presenca: presenca.avaliarPresenca(agendamento, agora)
   };
 }
 
@@ -269,7 +271,36 @@ async function cancelar(req, res) {
   });
 }
 
+async function registrarPresenca(req, res) {
+  const id = parseId(req.params.id);
+  const resultado = presenca.parseResultado(req.body?.resultado);
+  const agora = relogio.agora();
+  const atual = await agendamentosRepository.findById(id);
+
+  if (!atual) return naoEncontrado(res);
+
+  presenca.exigirPodeRegistrar(atual, agora);
+
+  const atualizado = await agendamentosRepository.registrarPresenca(
+    id,
+    req.usuarioLogado.id,
+    presenca.RESULTADOS[resultado],
+    (bloqueado) => presenca.exigirPodeRegistrar(bloqueado, agora)
+  );
+
+  if (!atualizado) return naoEncontrado(res);
+
+  return res.json({
+    mensagem:
+      resultado === 'compareceu'
+        ? 'Presença registrada. Agendamento em atendimento.'
+        : 'Não comparecimento registrado.',
+    dados: comRegrasDeAlteracao(atualizado, agora)
+  });
+}
+
 module.exports = {
+  registrarPresenca,
   list,
   listMine,
   options,

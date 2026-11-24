@@ -1,0 +1,113 @@
+/* Presença dos funcionários: resumo, filtro de data e selos de situação. */
+
+.presenca-resumo {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.presenca-resumo__item {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.presenca-resumo__item span {
+  color: #6b6d67;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.presenca-resumo__item strong {
+  font-size: 24px;
+}
+
+.presenca-resumo__item small {
+  color: #6b6d67;
+}
+
+.presenca-data {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.presenca-data .field {
+  min-width: 190px;
+}
+
+.presenca-presentes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 16px 20px;
+  list-style: none;
+}
+
+.presenca-presentes li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid #bfe3cb;
+  border-radius: var(--radius);
+  background: #f1faf4;
+}
+
+.presenca-presentes small {
+  color: #4a6b55;
+}
+
+.presenca-vazio {
+  margin: 0;
+  padding: 18px 20px;
+  color: #6b6d67;
+}
+
+.presenca-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.presenca-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.presenca-badge--presente {
+  color: #1f6b3a;
+  background: #e6f4ea;
+}
+
+.presenca-badge--saiu,
+.presenca-badge--ausente {
+  color: #4a4c47;
+  background: #eceae5;
+}
+
+.presenca-badge--sem_saida {
+  color: #8a5a00;
+  background: #fdf1d6;
+}
+
+@media (max-width: 760px) {
+  .presenca-resumo {
+    grid-template-columns: 1fr;
+  }
+}

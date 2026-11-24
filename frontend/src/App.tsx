@@ -21,6 +21,7 @@ import Agendamentos from './pages/Agendamentos';
 import Estoque from './pages/Estoque';
 import PedidosPecas from './pages/PedidosPecas';
 import MeuPerfil from './pages/MeuPerfil';
+import Presenca from './pages/Presenca';
 
 export default function App() {
   return (
@@ -144,6 +145,14 @@ export default function App() {
             element={
               <RequireAuth perfis={[PERFIS.ADMINISTRADOR, PERFIS.FUNCIONARIO]}>
                 <PedidosPecas />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/presenca"
+            element={
+              <RequireAuth perfis={[PERFIS.ADMINISTRADOR]}>
+                <Presenca />
               </RequireAuth>
             }
           />

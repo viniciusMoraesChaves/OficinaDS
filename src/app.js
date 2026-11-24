@@ -20,6 +20,7 @@ const painelRoutes = require('./routes/painelRoutes');
 const pecasRoutes = require('./routes/pecasRoutes');
 const pedidosPecasRoutes = require('./routes/pedidosPecasRoutes');
 const movimentacoesRoutes = require('./routes/movimentacoesRoutes');
+const presencaRoutes = require('./routes/presencaRoutes');
 const { notFoundApi, errorHandler } = require('./middlewares/errorHandler');
 const agendamentosRoutes = require('./routes/agendamentosRoutes');
 const notificacoesRoutes = require('./routes/notificacoesRoutes');
@@ -55,6 +56,7 @@ app.use('/api/pecas', pecasRoutes);
 app.use('/api/pedidos-pecas', pedidosPecasRoutes);
 app.use('/api/financeiro/movimentacoes', movimentacoesRoutes);
 app.use('/api/notificacoes', notificacoesRoutes);
+app.use('/api/presencas', presencaRoutes);
 app.use('/api', notFoundApi);
 
 

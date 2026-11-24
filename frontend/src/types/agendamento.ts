@@ -3,7 +3,8 @@ export type StatusAgendamento =
   | 'Confirmado'
   | 'Em atendimento'
   | 'Concluído'
-  | 'Cancelado';
+  | 'Cancelado'
+  | 'Não compareceu';
 
 export type PermissaoReagendamento = {
   permitido: boolean;
@@ -11,6 +12,11 @@ export type PermissaoReagendamento = {
 };
 
 export type PermissaoCancelamento = {
+  permitido: boolean;
+  motivo: string | null;
+};
+
+export type PermissaoPresenca = {
   permitido: boolean;
   motivo: string | null;
 };
@@ -35,6 +41,8 @@ export type Agendamento = {
   funcionario: string;
   reagendamento: PermissaoReagendamento;
   cancelamento: PermissaoCancelamento;
+  presenca: PermissaoPresenca;
+  presencaRegistradaEm: string | null;
 };
 
 export type VeiculoOpcao = {

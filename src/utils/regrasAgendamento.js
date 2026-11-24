@@ -13,7 +13,8 @@ const STATUS = Object.freeze({
   CONFIRMADO: 'Confirmado',
   EM_ATENDIMENTO: 'Em atendimento',
   CONCLUIDO: 'Concluído',
-  CANCELADO: 'Cancelado'
+  CANCELADO: 'Cancelado',
+  NAO_COMPARECEU: 'Não compareceu'
 });
 
 // Só estes status permitem reagendar.

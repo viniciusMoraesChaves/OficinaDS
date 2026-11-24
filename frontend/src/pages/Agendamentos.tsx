@@ -3,6 +3,7 @@ import { Layout } from '../components/Layout';
 import { Feedback } from '../components/Feedback';
 import { AgendamentoStatusBadge } from '../components/AgendamentoStatusBadge';
 import { SeletorHorario } from '../components/SeletorHorario';
+import { RegistrarPresenca } from '../components/RegistrarPresenca';
 import { apiFetch } from '../services/api';
 import type {
   Agendamento,
@@ -516,6 +517,14 @@ export default function Agendamentos() {
                       >
                         Cancelar
                       </button>
+                      <RegistrarPresenca
+                        agendamento={agendamento}
+                        onRegistrado={(mensagem) => {
+                          setSuccess(mensagem);
+                          void carregarDados();
+                        }}
+                        onErro={setError}
+                      />
                     </div>
                   </td>
                 </tr>
