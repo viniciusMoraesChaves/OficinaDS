@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Layout } from '../components/Layout';
 import { StatusBadge } from '../components/StatusBadge';
+import { EstrelasMedia } from '../components/EstrelasNota';
 import { Feedback } from '../components/Feedback';
 import { Pagination } from '../components/Pagination';
 import { apiFetch } from '../services/api';
@@ -14,6 +15,7 @@ import type {
 } from '../types/funcionario';
 import type { Paginacao } from '../types/cliente';
 import type { Cargo, ListaCargosResponse } from '../types/cargo';
+import '../styles/avaliacoes.css';
 
 const LIMITE = 8;
 
@@ -448,6 +450,7 @@ export default function Funcionarios() {
               <tr>
                 <th scope="col">Funcionário</th>
                 <th scope="col">Cargo</th>
+                <th scope="col">Avaliação</th>
                 <th scope="col">CPF</th>
                 <th scope="col">Telefone</th>
                 <th scope="col">Admissão</th>
@@ -458,7 +461,7 @@ export default function Funcionarios() {
             <tbody>
               {!loading && !error && funcionarios.length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={7}>
+                  <td className="empty-cell" colSpan={8}>
                     Nenhum funcionário corresponde à pesquisa.
                   </td>
                 </tr>
@@ -478,6 +481,9 @@ export default function Funcionarios() {
                     </div>
                   </td>
                   <td>{f.cargo}</td>
+                  <td>
+                    <EstrelasMedia media={f.avaliacaoMedia} total={f.totalAvaliacoes} />
+                  </td>
                   <td className="nowrap">{formatCpf(f.cpf)}</td>
                   <td className="nowrap">{formatPhone(f.telefone)}</td>
                   <td className="nowrap">{formatDate(f.dataAdmissao)}</td>
@@ -629,6 +635,17 @@ export default function Funcionarios() {
                   </span>
                 </label>
               </div>
+
+              <section className="employee-rating" aria-labelledby="avaliacao-funcionario-title">
+                <div>
+                  <h3 id="avaliacao-funcionario-title">Avaliação dos clientes</h3>
+                  <p>Média das notas de 1 a 5 estrelas dadas aos atendimentos deste profissional.</p>
+                </div>
+                <EstrelasMedia
+                  media={funcionarioSelecionado.avaliacaoMedia}
+                  total={funcionarioSelecionado.totalAvaliacoes}
+                />
+              </section>
 
               <section className="employee-services" aria-labelledby="servicos-funcionario-title">
                 <div className="employee-services__header">

@@ -34,6 +34,7 @@ Histórias:
 | — | Veículos e histórico do veículo | ✅ Implementada |
 | — | Reagendar serviço e consulta do cliente | ✅ Implementada |
 | — | Consultar inadimplências | ✅ Implementada |
+| — | Avaliar funcionários | ✅ Implementada |
 
 > O sistema está em desenvolvimento. As funcionalidades marcadas como planejadas no roadmap ainda serão integradas pelo grupo.
 
@@ -132,6 +133,16 @@ As regras e a API estão descritas em [`docs/INADIMPLENCIAS.md`](docs/INADIMPLEN
 
 As regras e a API estão descritas em [`docs/REAGENDAMENTO.md`](docs/REAGENDAMENTO.md).
 
+### Avaliar funcionários
+
+- o **Cliente** avalia o funcionário responsável pelo atendimento com **1 a 5 estrelas**, em "Minhas avaliações";
+- só atendimentos **concluídos** podem ser avaliados, e cada atendimento recebe **uma única avaliação** (não dá para alterar depois);
+- a avaliação fica ligada ao funcionário e ao atendimento, e o funcionário avaliado é sempre o responsável pelo atendimento (nunca vem da requisição);
+- a **média** (uma casa decimal) e o total de avaliações aparecem na lista de funcionários e no diálogo de administração, para o Administrador;
+- validações: nota inteira de 1 a 5, atendimento próprio, atendimento concluído e ainda não avaliado.
+
+As regras e a API estão descritas em [`docs/AVALIACOES.md`](docs/AVALIACOES.md).
+
 ### Recursos gerais
 
 - interface responsiva para computadores e dispositivos móveis;
@@ -161,6 +172,8 @@ As regras e a API estão descritas em [`docs/REAGENDAMENTO.md`](docs/REAGENDAMEN
 | Financeiro e inadimplências | ✅ | ❌ | ❌ |
 | Meus orçamentos (aceitar ou recusar) | ❌ | ❌ | ✅ |
 | Meus agendamentos (somente leitura) | ❌ | ❌ | ✅ |
+| Minhas avaliações (avaliar o funcionário do atendimento) | ❌ | ❌ | ✅ |
+| Média de avaliação dos funcionários | ✅ | ❌ | ❌ |
 
 O cliente só enxerga os próprios dados: o backend identifica o cliente pelo usuário logado, nunca por um parâmetro da requisição.
 
@@ -234,7 +247,11 @@ OficinaDS/
 │   ├── 27_inadimplencias.sql
 │   ├── 28_dados_teste_inadimplencias.sql
 │   └── 29_consultas_para_estudar_inadimplencias.sql
+│   ├── 30_movimentacoes_financeiras.sql
+│   ├── 31_dados_teste_movimentacoes.sql
+│   └── 32_avaliacoes_funcionarios.sql
 ├── docs/
+│   ├── AVALIACOES.md
 │   ├── DER_DO_MODULO.md
 │   ├── INADIMPLENCIAS.md
 │   ├── INTEGRACAO_EQUIPE.md
@@ -360,7 +377,8 @@ O DER completo e as observações sobre as relações estão em [`docs/DER_DO_MO
 - `ordem_servico` e `diagnostico`: script `13`, ligados ao atendimento pelo `14`;
 - `peca_utilizada`: criada no script `16` e ligada ao estoque/ordem de serviço pelo `23`;
 - `peca`: script `18`;
-- `pedido_peca` e `pedido_peca_item`: script `19`.
+- `pedido_peca` e `pedido_peca_item`: script `19`;
+- `avaliacao_funcionario`: script `30`.
 
 ## Pré-requisitos
 
@@ -427,6 +445,9 @@ Execute os arquivos da pasta `database` como `root`, **nesta ordem**. A ordem im
 | 23 | `24_cancelamento_agendamento.sql` | motivo, data e responsável pelo cancelamento de agendamentos |
 | 23 | `27_inadimplencias.sql` | tabela de cobranças, permissão de pagamento e cobranças dos orçamentos já aceitos |
 | 24 | `28_dados_teste_inadimplencias.sql` | opcional: cobranças fictícias para testar a tela |
+| 25 | `30_movimentacoes_financeiras.sql` | movimentações financeiras do controle financeiro |
+| 26 | `31_dados_teste_movimentacoes.sql` | opcional: movimentações fictícias para testar a tela |
+| 27 | `32_avaliacoes_funcionarios.sql` | avaliações (1 a 5 estrelas) dos funcionários pelos clientes |
 
 Os arquivos `04_consultas_para_estudar.sql` e `29_consultas_para_estudar_inadimplencias.sql` são opcionais (só leitura) e contêm exemplos de consultas.
 
@@ -458,6 +479,9 @@ mysql -u root -p --default-character-set=utf8mb4 < database/23_pecas_utilizadas.
 mysql -u root -p --default-character-set=utf8mb4 < database/24_cancelamento_agendamento.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/27_inadimplencias.sql
 mysql -u root -p --default-character-set=utf8mb4 < database/28_dados_teste_inadimplencias.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/30_movimentacoes_financeiras.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/31_dados_teste_movimentacoes.sql
+mysql -u root -p --default-character-set=utf8mb4 < database/32_avaliacoes_funcionarios.sql
 ```
 
 > No Windows, o `--default-character-set=utf8mb4` evita erros de codificação e acentos quebrados. Pare no primeiro erro e corrija antes de continuar. Se precisar recomeçar do zero, apague o banco com `DROP DATABASE oficina_ds;` e refaça a sequência. Repetir o `15_agendamentos.sql` recalcula as datas dos agendamentos de exemplo e apaga os reagendamentos que você tiver testado.
@@ -627,6 +651,8 @@ Todas as rotas, exceto `saude`, `cadastro` e `login`, exigem o cabeçalho `Autho
 | `POST` | `/api/agendamentos` | Equipe | Cria um agendamento |
 | `PATCH` | `/api/agendamentos/:id/reagendar` | Equipe | Reagenda um serviço |
 | `PATCH` | `/api/agendamentos/:id/cancelar` | Equipe | Cancela e registra motivo, data e usuário responsável |
+| `GET` | `/api/avaliacoes/meus` | Cliente | Atendimentos concluídos do cliente, com a nota dada |
+| `POST` | `/api/avaliacoes` | Cliente | Registra a avaliação (1 a 5 estrelas) de um atendimento |
 
 O Administrador tem acesso a todas as rotas, inclusive às de Funcionario.
 
@@ -688,6 +714,25 @@ Content-Type: application/json
 
 Somente agendamentos futuros com status `Agendado` ou `Confirmado` podem ser cancelados. A operação registra o motivo, a data/hora e o usuário da equipe responsável.
 
+### Avaliar um atendimento
+
+```http
+POST /api/avaliacoes
+Content-Type: application/json
+
+{ "idAtendimento": 3, "nota": 5 }
+```
+
+| Resposta | Quando |
+| --- | --- |
+| `201` | avaliação registrada |
+| `400` | `nota` que não seja um inteiro de 1 a 5, ou `idAtendimento` inválido |
+| `403` | quem chama não é cliente (o Administrador, por exemplo) |
+| `404` | atendimento inexistente ou de outro cliente |
+| `409` | atendimento ainda não concluído, cancelado, sem funcionário responsável ou já avaliado |
+
+A média de cada funcionário vem junto da listagem e do detalhe (`/api/funcionarios`), nos campos `avaliacaoMedia` e `totalAvaliacoes`.
+
 ## Testes
 
 Execute os testes automatizados do backend:
@@ -715,7 +760,8 @@ O projeto possui testes para:
 - estoque de peças e painel inicial;
 - pedidos de peças (itens e quantidades, envio, aprovação, rejeição e permissões);
 - regras de agendamento, reagendamento e cancelamento, incluindo motivo e auditoria;
-- administração completa de funcionários e consulta dos serviços atribuídos.
+- administração completa de funcionários e consulta dos serviços atribuídos;
+- avaliação de funcionários (nota de 1 a 5, cálculo da média, regras de acesso e permissões).
 
 ## Integração da equipe
 
@@ -754,7 +800,8 @@ Mais detalhes estão em [`docs/INTEGRACAO_EQUIPE.md`](docs/INTEGRACAO_EQUIPE.md)
 - [x] consultar inadimplências;
 - [x] registrar o pagamento das cobranças;
 - [ ] controle financeiro completo (juros, multa e lembretes);
-- [ ] avaliações, presença e relatórios.
+- [x] avaliar funcionários (1 a 5 estrelas) e exibir a média;
+- [ ] presença e relatórios.
 
 ## Boas práticas adotadas
 

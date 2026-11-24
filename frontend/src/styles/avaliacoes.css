@@ -1,0 +1,139 @@
+/* Avaliação de funcionários: seletor de 1 a 5 estrelas e exibição da média. */
+
+.estrelas-seletor,
+.estrelas-fixas,
+.estrelas-media {
+  --estrela-cheia: var(--accent);
+  --estrela-vazia: #b9bbb4;
+}
+
+.estrelas-seletor {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.estrelas-seletor__opcao {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 8px;
+  color: var(--estrela-vazia);
+  cursor: pointer;
+}
+
+.estrelas-seletor__opcao svg {
+  stroke: var(--estrela-vazia);
+  transition: transform 0.12s ease;
+}
+
+/* Estrela preenchida (selecionada ou na prévia do mouse). */
+.estrelas-seletor__opcao svg[fill='currentColor'] {
+  color: var(--estrela-cheia);
+  stroke: var(--accent-dark);
+}
+
+.estrelas-seletor__opcao:hover svg {
+  transform: scale(1.12);
+}
+
+.estrelas-seletor__opcao:focus-within {
+  outline: 2px solid var(--accent-dark);
+  outline-offset: 1px;
+}
+
+.estrelas-seletor:disabled .estrelas-seletor__opcao {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.estrelas-seletor__texto {
+  min-width: 96px;
+  margin-left: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.estrelas-fixas {
+  display: inline-flex;
+  gap: 1px;
+  color: var(--estrela-vazia);
+}
+
+.estrelas-fixas svg {
+  stroke: var(--estrela-vazia);
+}
+
+.estrelas-fixas svg[fill='currentColor'] {
+  color: var(--estrela-cheia);
+  stroke: var(--accent-dark);
+}
+
+.estrelas-media {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.estrelas-media strong {
+  font-size: 14px;
+}
+
+.estrelas-media small,
+.estrelas-media--vazia {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.avaliacao-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.avaliacao-enviada {
+  display: grid;
+  gap: 2px;
+}
+
+.avaliacao-enviada small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Média dentro do diálogo "Administrar funcionário". */
+.employee-rating {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.employee-rating h3,
+.employee-rating p {
+  margin: 0;
+}
+
+.employee-rating p {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 650px) {
+  .estrelas-seletor__texto {
+    min-width: 0;
+  }
+
+  .employee-rating {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
