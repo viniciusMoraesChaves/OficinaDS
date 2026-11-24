@@ -277,6 +277,97 @@ async function atualizar({
     connection.release();
   }
 }
+async function buscarDesempenhoPorDia(data, idFuncionario = null) {
+  const params = [data];
+  let filtroFuncionario = '';
+
+  if (idFuncionario) {
+    filtroFuncionario = ' AND f.id_funcionario = ?';
+    params.push(idFuncionario);
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT
+       f.id_funcionario AS idFuncionario,
+       f.nome AS funcionarioNome,
+       ca.nome AS cargo,
+       a.id_atendimento AS idAtendimento,
+       COALESCE(NULLIF(os.descricao_problema, ''), CONCAT('Atendimento #', a.id_atendimento)) AS servico,
+       DATE_FORMAT(COALESCE(d.data_hora, os.data_fechamento), '%Y-%m-%dT%H:%i:%s') AS criadoEm,
+       DATE_FORMAT(COALESCE(os.data_fechamento, d.data_hora), '%Y-%m-%dT%H:%i:%s') AS finalizadoEm,
+       CASE
+         WHEN d.data_hora IS NOT NULL AND os.data_fechamento IS NOT NULL
+           THEN GREATEST(TIMESTAMPDIFF(MINUTE, d.data_hora, os.data_fechamento), 1)
+         ELSE 60
+       END AS tempoExecucaoMinutos,
+       CASE
+         WHEN LOWER(COALESCE(d.descricao, '')) REGEXP 'alta|complex|motor|cambio|câmbio|retifica|retífica|eletrica|elétrica'
+           THEN 'alta'
+         WHEN LOWER(COALESCE(d.descricao, '')) REGEXP 'baixa|simples|oleo|óleo|filtro|alinhamento|balanceamento|lampada|lâmpada'
+           THEN 'baixa'
+         ELSE 'media'
+       END AS dificuldadeDiagnostico
+     FROM funcionario f
+     INNER JOIN cargo ca ON ca.id_cargo = f.id_cargo
+     LEFT JOIN atendimento a
+       ON a.id_funcionario = f.id_funcionario
+       AND a.status = 'concluido'
+     LEFT JOIN ordem_servico os
+       ON os.id_atendimento = a.id_atendimento
+     LEFT JOIN diagnostico d
+       ON d.id_ordem = os.id_ordem
+     WHERE f.ativo = 1
+       AND (
+         a.id_atendimento IS NULL
+         OR DATE(COALESCE(os.data_fechamento, d.data_hora)) = ?
+       )
+       ${filtroFuncionario}
+     ORDER BY f.nome ASC, a.id_atendimento ASC`,
+    params
+  );
+
+  return rows;
+}
+
+// DM-60 & DM-66: Série histórica dos últimos 7 dias para os gráficos
+async function buscarHistoricoSemanalDesempenho(dataReferencia, idFuncionario = null) {
+  const params = [dataReferencia, dataReferencia];
+  let filtroFuncionario = '';
+
+  if (idFuncionario) {
+    filtroFuncionario = ' AND a.id_funcionario = ?';
+    params.push(idFuncionario);
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT
+       DATE_FORMAT(DATE(COALESCE(os.data_fechamento, d.data_hora)), '%Y-%m-%d') AS dia,
+       COUNT(DISTINCT a.id_atendimento) AS totalServicos,
+       COALESCE(
+         ROUND(AVG(
+           CASE
+             WHEN d.data_hora IS NOT NULL AND os.data_fechamento IS NOT NULL
+               THEN GREATEST(TIMESTAMPDIFF(MINUTE, d.data_hora, os.data_fechamento), 1)
+             ELSE 60
+           END
+         )),
+         0
+       ) AS tempoMedioMinutos
+     FROM atendimento a
+     INNER JOIN ordem_servico os ON os.id_atendimento = a.id_atendimento
+     LEFT JOIN diagnostico d ON d.id_ordem = os.id_ordem
+     WHERE a.status = 'concluido'
+       AND COALESCE(os.data_fechamento, d.data_hora) IS NOT NULL
+       AND DATE(COALESCE(os.data_fechamento, d.data_hora))
+           BETWEEN DATE_SUB(?, INTERVAL 6 DAY) AND ?
+       ${filtroFuncionario}
+     GROUP BY dia
+     ORDER BY dia ASC`,
+    params
+  );
+
+  return rows;
+}
 
 async function criar({ nome, cpf, email, telefone, dataAdmissao, idCargo, idUsuario }) {
   const [resultado] = await pool.execute(
@@ -297,5 +388,7 @@ module.exports = {
   listarServicosAtribuidos,
   atualizar,
   criar,
-  posicaoNaLista
+  posicaoNaLista,
+  buscarDesempenhoPorDia,
+  buscarHistoricoSemanalDesempenho
 };

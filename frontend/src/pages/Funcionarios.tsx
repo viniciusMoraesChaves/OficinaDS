@@ -1,4 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  Award,
+  BarChart3,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  TrendingUp,
+  X,
+} from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { StatusBadge } from '../components/StatusBadge';
 import { Feedback } from '../components/Feedback';
@@ -9,6 +18,8 @@ import type {
   Funcionario,
   FuncionarioDetalhado,
   ListaFuncionariosResponse,
+  RelatorioDiarioDados,
+  RelatorioDiarioResponse,
   ServicoFuncionario,
   StatusFiltro,
 } from '../types/funcionario';
@@ -71,10 +82,22 @@ export default function Funcionarios() {
   const [salvandoNovoFuncionario, setSalvandoNovoFuncionario] = useState(false);
   const [erroNovoFuncionario, setErroNovoFuncionario] = useState('');
 
+  const [modalRelatorioAberto, setModalRelatorioAberto] = useState(false);
+  const [dataRelatorio, setDataRelatorio] = useState(() => {
+    const hoje = new Date();
+    const offset = hoje.getTimezoneOffset() * 60000;
+    return new Date(hoje.getTime() - offset).toISOString().split('T')[0];
+});
+  const [funcionarioRelatorioId, setFuncionarioRelatorioId] = useState<number | null>(null);
+  const [relatorioDados, setRelatorioDados] = useState<RelatorioDiarioDados | null>(null);
+  const [carregandoRelatorio, setCarregandoRelatorio] = useState(false);
+  const [erroRelatorio, setErroRelatorio] = useState('');
+
   const searchRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const novoCargoDialogRef = useRef<HTMLDialogElement>(null);
   const novoFuncionarioDialogRef = useRef<HTMLDialogElement>(null);
+  const relatorioDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +172,55 @@ export default function Funcionarios() {
       dialog.showModal();
     }
   }, [modalNovoFuncionarioAberto]);
+
+  useEffect(() => {
+    const dialog = relatorioDialogRef.current;
+
+    if (modalRelatorioAberto && dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }, [modalRelatorioAberto]);
+
+  useEffect(() => {
+    if (!modalRelatorioAberto) return;
+    let cancelled = false;
+
+    async function carregarRelatorio() {
+      setCarregandoRelatorio(true);
+      setErroRelatorio('');
+
+      const params = new URLSearchParams({ data: dataRelatorio });
+      if (funcionarioRelatorioId) {
+        params.set('idFuncionario', String(funcionarioRelatorioId));
+      }
+
+      try {
+        const resposta = await apiFetch<RelatorioDiarioResponse>(
+          `/api/funcionarios/relatorio-diario?${params}`
+        );
+        if (cancelled) return;
+        setRelatorioDados(resposta.dados);
+      } catch (err) {
+        if (cancelled) return;
+        setRelatorioDados(null);
+        setErroRelatorio(
+          err instanceof Error ? err.message : 'Erro ao carregar relatório diário.'
+        );
+      } finally {
+        if (!cancelled) setCarregandoRelatorio(false);
+      }
+    }
+
+    carregarRelatorio();
+    return () => {
+      cancelled = true;
+    };
+  }, [modalRelatorioAberto, dataRelatorio, funcionarioRelatorioId]);
+
+  function abrirRelatorio(idFuncionario: number | null = null) {
+    setFuncionarioRelatorioId(idFuncionario);
+    setModalRelatorioAberto(true);
+  }
 
   function aplicar(busca: string, status: StatusFiltro) {
     setFiltros({ busca, status });
@@ -361,6 +433,11 @@ export default function Funcionarios() {
     }
   }
 
+  const maxServicosGrafico = Math.max(
+    ...(relatorioDados?.graficoSemanal.map((g) => g.totalServicos) || [1]),
+    1
+  );
+
   return (
     <Layout
       title="Funcionários"
@@ -425,6 +502,15 @@ export default function Funcionarios() {
             <button
               className="button button--secondary"
               type="button"
+              onClick={() => abrirRelatorio(null)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <BarChart3 size={16} aria-hidden="true" />
+              Relatório diário
+            </button>
+            <button
+              className="button button--secondary"
+              type="button"
               onClick={() => setModalNovoCargoAberto(true)}
             >
               Novo cargo
@@ -483,13 +569,24 @@ export default function Funcionarios() {
                   <td className="nowrap">{formatDate(f.dataAdmissao)}</td>
                   <td><StatusBadge active={Boolean(f.ativo)} /></td>
                   <td>
-                    <button
-                      className="button button--secondary button--small"
-                      type="button"
-                      onClick={() => handleEditarFuncionario(f)}
-                    >
-                      Editar
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        className="button button--ghost button--small"
+                        type="button"
+                        onClick={() => abrirRelatorio(f.id)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <TrendingUp size={14} aria-hidden="true" />
+                        Desempenho
+                      </button>
+                      <button
+                        className="button button--secondary button--small"
+                        type="button"
+                        onClick={() => handleEditarFuncionario(f)}
+                      >
+                        Editar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -883,6 +980,271 @@ export default function Funcionarios() {
             </div>
           </dialog>
         )}
+
+      {modalRelatorioAberto && (
+        <dialog
+          ref={relatorioDialogRef}
+          className="dialog dialog--employee"
+          onClose={() => {
+            setModalRelatorioAberto(false);
+            setFuncionarioRelatorioId(null);
+          }}
+        >
+          <div className="dialog__header">
+            <h2 style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <BarChart3 size={20} aria-hidden="true" />
+              {funcionarioRelatorioId
+                ? 'Desempenho individual do funcionário'
+                : 'Relatório diário da equipe'}
+            </h2>
+            <button
+              className="dialog__close"
+              type="button"
+              onClick={() => relatorioDialogRef.current?.close()}
+              aria-label="Fechar"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="dialog__body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div className="field" style={{ margin: 0 }}>
+                <label
+                  htmlFor="relatorio-data"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Calendar size={14} aria-hidden="true" />
+                  Data de referência
+                </label>
+                <input
+                  id="relatorio-data"
+                  type="date"
+                  value={dataRelatorio}
+                  onChange={(e) => setDataRelatorio(e.target.value)}
+                />
+              </div>
+
+              {funcionarioRelatorioId && (
+                <button
+                  className="button button--ghost button--small"
+                  type="button"
+                  onClick={() => setFuncionarioRelatorioId(null)}
+                >
+                  Ver toda a equipe
+                </button>
+              )}
+            </div>
+
+            {carregandoRelatorio && (
+              <Feedback type="loading" message="Calculando desempenho e carregando gráficos..." />
+            )}
+            {erroRelatorio && <Feedback type="error" message={erroRelatorio} />}
+
+            {!carregandoRelatorio && !erroRelatorio && relatorioDados && (
+              <>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    <small
+                      style={{
+                        color: '#6b7280',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      <CheckCircle2 size={14} aria-hidden="true" />
+                      Serviços concluídos
+                    </small>
+                    <strong style={{ fontSize: '1.35rem', display: 'block' }}>
+                      {relatorioDados.resumoGeral.totalServicosDia}
+                    </strong>
+                  </div>
+
+                  <div style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    <small
+                      style={{
+                        color: '#6b7280',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      <Award size={14} aria-hidden="true" />
+                      Índice médio de desempenho
+                    </small>
+                    <strong style={{ fontSize: '1.35rem', display: 'block' }}>
+                      {relatorioDados.resumoGeral.mediaDesempenhoEquipe}%
+                    </strong>
+                  </div>
+
+                  <div style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    <small
+                      style={{
+                        color: '#6b7280',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      <Calendar size={14} aria-hidden="true" />
+                      Data consultada
+                    </small>
+                    <strong style={{ fontSize: '1.1rem', display: 'block' }}>
+                      {formatDate(relatorioDados.dataReferencia)}
+                    </strong>
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                  <h3
+                    style={{
+                      margin: '0 0 12px',
+                      fontSize: '0.95rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <TrendingUp size={16} aria-hidden="true" />
+                    Serviços concluídos nos últimos 7 dias
+                  </h3>
+
+                  {(() => {
+                    const mapaDias = new Map(
+                      relatorioDados.graficoSemanal.map((p) => [p.dia, p])
+                    );
+
+                    const seteDias = Array.from({ length: 7 }, (_, i) => {
+                      const base = new Date(`${dataRelatorio}T12:00:00`);
+                      base.setDate(base.getDate() - (6 - i));
+                      const iso = base.toISOString().split('T')[0];
+                      return (
+                        mapaDias.get(iso) || {
+                          dia: iso,
+                          totalServicos: 0,
+                          tempoMedioMinutos: 0,
+                        }
+                      );
+                    });
+
+                    const maxServicos = Math.max(...seteDias.map((d) => d.totalServicos), 1);
+
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '130px' }}>
+                        {seteDias.map((ponto) => {
+                          const altura =
+                            ponto.totalServicos > 0
+                              ? Math.max(Math.round((ponto.totalServicos / maxServicos) * 90), 12)
+                              : 4;
+
+                          return (
+                            <div
+                              key={ponto.dia}
+                              style={{
+                                flex: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <small style={{ fontWeight: 600, color: ponto.totalServicos > 0 ? '#111827' : '#9ca3af' }}>
+                                {ponto.totalServicos}
+                              </small>
+                              <div
+                                title={
+                                  ponto.totalServicos > 0
+                                    ? `${ponto.totalServicos} serviço(s) • Tempo médio: ${ponto.tempoMedioMinutos} min`
+                                    : 'Nenhum serviço concluído'
+                                }
+                                style={{
+                                  width: '60%',
+                                  maxWidth: '36px',
+                                  height: `${altura}px`,
+                                  backgroundColor: ponto.totalServicos > 0 ? '#f59e0b' : '#e5e7eb',
+                                  borderRadius: '4px 4px 0 0',
+                                  transition: 'height 0.2s ease',
+                                }}
+                              />
+                              <small style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                {ponto.dia.slice(8, 10)}/{ponto.dia.slice(5, 7)}
+                              </small>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Funcionário</th>
+                        <th scope="col">Serviços</th>
+                        <th scope="col">
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={14} aria-hidden="true" />
+                            Tempo médio
+                          </span>
+                        </th>
+                        <th scope="col">Dificuldades (B / M / A)</th>
+                        <th scope="col">Desempenho</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {relatorioDados.funcionarios.length === 0 && (
+                        <tr>
+                          <td className="empty-cell" colSpan={5}>
+                            Nenhum registro encontrado para esta data.
+                          </td>
+                        </tr>
+                      )}
+                      {relatorioDados.funcionarios.map((f) => (
+                        <tr key={f.id}>
+                          <td>
+                            <strong>{f.nome}</strong>
+                            <small style={{ display: 'block', color: '#6b7280' }}>{f.cargo}</small>
+                          </td>
+                          <td>{f.totalServicos}</td>
+                          <td className="nowrap">{f.tempoMedioMinutos} min</td>
+                          <td className="nowrap">
+                            {f.distribuicaoDificuldade.baixa} / {f.distribuicaoDificuldade.media} / {f.distribuicaoDificuldade.alta}
+                          </td>
+                          <td>
+                            <strong>{f.indiceDesempenho}%</strong>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            <div className="dialog__actions">
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => relatorioDialogRef.current?.close()}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </dialog>
+      )}
     </Layout>
   );
 }
